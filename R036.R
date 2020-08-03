@@ -156,11 +156,20 @@
 	
 		# 2017
 			DE_TWEE_2017 <- read.xlsx("./TWEETS/DETWEETS2017_Summary_2020-04-14_final_version.xlsx", sheet = 1)
-			DE_TWEE_HITS <- read.xlsx("./TWEETS/DETWEETS2017_Summary_2020-04-14_final_version.xlsx", sheet = 2)
+			DE_HITS_2017 <- read.xlsx("./TWEETS/DETWEETS2017_Summary_2020-04-14_final_version.xlsx", sheet = 2)
 			
-			colnames(DE_TWEE_HITS)[which(names(DE_TWEE_HITS) == "False.Positive?")] <- "false_positive"
-			colnames(DE_TWEE_HITS)[which(names(DE_TWEE_HITS) == "False.Positive.")] <- "false_positive"
-			DE_TWEE_HITS$false_positive <- trimws(DE_TWEE_HITS$false_positive)
+		# 2013
+			DE_TWEE_2013 <- read.xlsx("./TWEETS/DETWEETS2013_Summary_2020-04-08_final_version.xlsx", sheet = 1)
+			DE_HITS_2013 <- read.xlsx("./TWEETS/DETWEETS2013_Summary_2020-04-08_final_version.xlsx", sheet = 2)
+			
+		# 2009
+			DE_TWEE_2009 <- read.xlsx("./TWEETS/DETWEETS2009_Summary_final_version.xlsx", sheet = 1)
+			DE_HITS_2009 <- read.xlsx("./TWEETS/DETWEETS2009_Summary_final_version.xlsx", sheet = 2)
+			
+		# 2005
+			DE_TWEE_2005 <- read.xlsx("./TWEETS/DETWEETS2005_Summary_final_version.xlsx", sheet = 1)
+			DE_HITS_2005 <- read.xlsx("./TWEETS/DETWEETS2005_Summary_final_version.xlsx", sheet = 2)
+	
 
 #################
 
@@ -171,6 +180,9 @@
 
 #################
 
+	TWEETSLOC <- TWEE_CH_TWEE
+    HITSLOC <- TWEE_CH_HITS
+	
 	getupdatedwastweetlocal <- function(TWEETSLOC,HITSLOC)
 	{
 	# input: 
@@ -224,8 +236,8 @@
 		TWEETSLOC <- data.table(TWEETSLOC)
 		TWEETSLOC$tweets_local_cues_red <- unite(TWEETSLOC[,match("X1",colnames(TWEETSLOC)):ncol(TWEETSLOC)],"tweets_local_cues_red",sep=";")
 		
-		# get rid of unnessary seperators
-		TWEETSLOC$tweets_local_cues_red <- str_extract(TWEETSLOC$tweets_local_cues_red,"([A-Z]){2}((;([A-Z]{2}))){0,19}")
+		# get rid of unnessary seperators (WHY?!)
+		# TWEETSLOC$tweets_local_cues_red <- str_extract(TWEETSLOC$tweets_local_cues_red,"([A-Z]){2}((;([A-Z]{2}))){0,19}")
 
 	# was this tweet a local cue for this MP?!
 	
@@ -233,25 +245,60 @@
 		pb <- txtProgressBar(min = 1, max = nrow(TWEETSLOC), style = 3)
 		for(i in 1:nrow(TWEETSLOC))
 		{
-		resvec[i] <-  TWEETSLOC$tweets_local_cues_red[i] %like% TWEETSLOC$canton[i]
+			if(names(table(TWEETSLOC$country)) == "CH") # is the country CH, then check for a canton match?
+			{
+				resvec[i] <-  TWEETSLOC$tweets_local_cues_red[i] %like% TWEETSLOC$canton[i]
+			}
+			
+			# is country DE, then check for a region or district match?
+			if(names(table(TWEETSLOC$country)) == "DE") # is the country DE, then check if the district matches
+			{
+				resvec[i] <-  (TWEETSLOC$tweets_local_cues_red[i] %like% TWEETSLOC$WKR_NAME[i]  # district match
+								|
+								length(
+										intersect(
+												unlist(strsplit(as.character(TWEETSLOC$WKR_in_LAND[i]), "\\|")),
+												unlist(strsplit(as.character(TWEETSLOC$tweets_local_cues_red[i]), ";"))
+												 ))>0
+											   )
+				
+			}
+		
 		setTxtProgressBar(pb, i)
 		}
 		close(pb)
 	return(resvec)
 	}
 	
-	test <- getupdatedwastweetlocal(TWEE_CH_TWEE,TWEE_CH_HITS)
+	# CH
+	head(resvecold)
 	
-	resvecold <- resvec
 	
-		TWEE_CH_TWEE$tweetislocalque <- resvec
-		TWEE_CH_TWEE[20:25,]
-
-		TWEE <- TWEE_CH_TWEE
+	TWEE_CH_TWEE$tweetislocalque <- getupdatedwastweetlocal(TWEE_CH_TWEE,TWEE_CH_HITS) # this has been tested against the version that ran by itself and it all looked good!
+	
+	# DE
+	
+		# DE 2017 
+		DE_TWEE_2017$tweetislocalque <- getupdatedwastweetlocal(DE_TWEE_2017,DE_HITS_2017)
+		
+		# DE 2013
+		DE_TWEE_2013$tweetislocalque <- getupdatedwastweetlocal(DE_TWEE_2013,DE_HITS_2013)
+		
+		# DE 2009
+		DE_TWEE_2009$tweetislocalque <- getupdatedwastweetlocal(DE_TWEE_2009,DE_HITS_2009)
+		
+		# DE 2005
+		DE_TWEE_2005$tweetislocalque <- getupdatedwastweetlocal(DE_TWEE_2005,DE_HITS_2005)
 	
 	# somewhere around here this can be ran for each data-set with a rbind or something?!
 
-	# output: a 'resvec' with as its value if the tweet was local! 
+		rbind(	as.data.table(TWEE_CH_TWEE[c("pers_id","country","tweet_timestamp","text","tweetislocalque")]),
+				as.data.table(DE_TWEE_2017[c("pers_id","country","tweet_timestamp","text","tweetislocalque")]),
+				as.data.table(DE_TWEE_2013[c("pers_id","country","tweet_timestamp","text","tweetislocalque")]),
+				as.data.table(DE_TWEE_2009[c("pers_id","country","tweet_timestamp","text","tweetislocalque")]),
+				as.data.table(DE_TWEE_2005[c("pers_id","country","tweet_timestamp","text","tweetislocalque")])
+			 )
+
 
 #################
 
@@ -417,6 +464,12 @@
 
 #################
 
+
+###
+## H1: Swiss and German MPs use more local cues during the campaign season.
+###
+
+
 	## total over time
 	
 		TWT <- sqldf("SELECT month, SUM(total_nr_of_tweets) as 'total_sum', SUM(nr_of_tweets_with_localque) as 'lq_sum'
@@ -458,9 +511,11 @@
 	  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Relative number of local cues [%]")) +
 	  scale_x_datetime(limits = c(as.POSIXct("2009-06-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
 	  geom_vline(aes(xintercept=TWT$leg_period_start_asdate), linetype=4, colour="black") 
-	 
-	 
-	# tenure analysis
+	  
+###
+## H3: Swiss and German MPs use more local cues when their tenure in the national parliament is low
+###
+
 		DT$pers_loc <- (DT$nr_of_tweets_with_localque / DT$total_nr_of_tweets)*100
 		hist(DT$pers_loc)
 		table(is.na(DT$pers_loc)) # lots of MP month combos ofcourse in which nobody tweets!
@@ -470,7 +525,11 @@
 		geom_smooth(method = lm) +
 		xlab("Parliamentary tenure in years") +
 		ylab("Percentage of tweets that contains a local cue")
-		
+	
+###
+## H2: Swiss and German MPs use more local cues when the electoral system offers incentives to cultivate a personal vote.
+###	
+
 	  
 #################
 
