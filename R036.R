@@ -417,7 +417,6 @@
 
 #################
 
-
 	## total over time
 	
 		TWT <- sqldf("SELECT month, SUM(total_nr_of_tweets) as 'total_sum', SUM(nr_of_tweets_with_localque) as 'lq_sum'
@@ -428,15 +427,50 @@
 		tail(TWT)
 		
 		TWT$timest <- as.POSIXct(paste(TWT$month,"-01 00:00",sep=""))
-		
-		# 01/06/2009 -- 31/05/2019
+
+	# merge in the relevant parliaments
+		PARL_CH <- PARL[which(PARL$country_abb == "CH" & PARL$level == "NT" & PARL$assembly_abb == "NR"),]
+		nrow(PARL_CH)
+		PARL_CH$leg_period_start_asdate  <- as.POSIXct(as.character(PARL_CH$leg_period_start),format=c("%d%b%Y"))
+		PARL_CH$leg_period_end_asdate  <- as.POSIXct(as.character(PARL_CH$leg_period_end),format=c("%d%b%Y"))
+
+	TWT <- sqldf("SELECT TWT.*, PARL_CH.parliament_id, PARL_CH.leg_period_start_asdate
+				  FROM TWT LEFT JOIN PARL_CH
+				  ON
+				  TWT.timest >= PARL_CH.leg_period_start_asdate
+				  AND
+				  TWT.timest <= PARL_CH.leg_period_end_asdate
+					")
 	
-	ggplot(TWT, aes(y=total_sum,x=timest)) +
+	# calculate a percentage
+	TWT$pers_loc <- (TWT$lq_sum / TWT$total_sum)*100
+	summary(TWT$pers_loc)
+	
+	# remove observations based on less then 20 observations
+	hist(TWT$total_sum)
+	TWT <- TWT[which(TWT$total_sum > 150),]
+	nrow(TWT)
+	
+	ggplot(TWT, aes(y=total_sum,x=timest, colour="Total sum")) +
 	  geom_line() +
-	  geom_line(aes(y=lq_sum,x=timest),color="blue") +
+	  geom_line(aes(y=lq_sum,x=timest,colour="Number of tweet with local cue")) +
+	  geom_line(aes(y = pers_loc*1000, colour = "Percentage of tweet with local cue")) +
+	  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Relative number of local cues [%]")) +
 	  scale_x_datetime(limits = c(as.POSIXct("2009-06-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
-	  
-	  
+	  geom_vline(aes(xintercept=TWT$leg_period_start_asdate), linetype=4, colour="black") 
+	 
+	 
+	# tenure analysis
+		DT$pers_loc <- (DT$nr_of_tweets_with_localque / DT$total_nr_of_tweets)*100
+		hist(DT$pers_loc)
+		table(is.na(DT$pers_loc)) # lots of MP month combos ofcourse in which nobody tweets!
+		
+		ggplot(DT, aes(tenure, pers_loc)) +
+		geom_point() + 
+		geom_smooth(method = lm) +
+		xlab("Parliamentary tenure in years") +
+		ylab("Percentage of tweets that contains a local cue")
+		
 	  
 #################
 
