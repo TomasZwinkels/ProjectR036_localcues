@@ -177,46 +177,43 @@
 		# 1) one data-frame with tweets 
 		# 2) one data-frame with hits
 
+	# some cleaning
+		colnames(HITSLOC)[which(names(HITSLOC) == "False.Positive?")] <- "false_positive"
+		colnames(HITSLOC)[which(names(HITSLOC) == "False.Positive.")] <- "false_positive"
+		HITSLOC$false_positive <- trimws(HITSLOC$false_positive)
+
 	# make a subset with the false positives
-		nrow(TWEE_CH_HITS)
-		table(TWEE_CH_HITS$false_positive)
-		head(TWEE_CH_HITS)
-		TWEE_CH_FP <- TWEE_CH_HITS[which(TWEE_CH_HITS$false_positive == "Yes"),]
-		head(TWEE_CH_FP)
+		HITS_FP <- HITSLOC[which(HITSLOC$false_positive == "Yes"),]
 
 	# when there are multiple local cues, split them accross columns
-
-		# inspect
-		table(TWEE_CH_TWEE$tweets_local_cues)
-		table(str_count(TWEE_CH_TWEE$tweets_local_cues,";")) 
 		
 		# implement the split
-		longest <- max(str_count(TWEE_CH_TWEE$tweets_local_cues,";"),na.rm=T)
-		LC <- data.frame(str_split_fixed(TWEE_CH_TWEE$tweets_local_cues,";",longest+1))
+		longest <- max(str_count(TWEETSLOC$tweets_local_cues,";"),na.rm=T)
+		LC <- data.frame(str_split_fixed(TWEETSLOC$tweets_local_cues,";",longest+1))
 		head(LC)
 		
-		TWEE_CH_TWEE <- cbind(TWEE_CH_TWEE,LC)
-		head(TWEE_CH_TWEE)
+		TWEETSLOC <- cbind(TWEETSLOC,LC)
+		head(TWEETSLOC)
 
 	# get rid of all of the false positives in this data in a loop 
 		# (so note how, to safe time, we loop through the false positive here and remove them, instead of checking for every row if..
 		# it is a false positive
 	
-		pb <- txtProgressBar(min = 1, max = nrow(TWEE_CH_FP), style = 3)
-		for(i in 1:nrow(TWEE_CH_FP))
+		pb <- txtProgressBar(min = 1, max = nrow(HITS_FP), style = 3)
+		for(i in 1:nrow(HITS_FP))
 		{
-			mytweetnumber <- TWEE_CH_FP$tweetnumb[i]
-			mydistrictmatch <- TWEE_CH_FP$DistrictMatch[i] 
+			mytweetnumber <- HITS_FP$tweetnumb[i]
+			mydistrictmatch <- HITS_FP$DistrictMatch[i] 
 		
 			# find the tweet this concerns
-			ROW <- TWEE_CH_TWEE[which(TWEE_CH_TWEE$tweetnumb == mytweetnumber),]
-			rowoffset <- which(TWEE_CH_TWEE$tweetnumb == mytweetnumber)
+			ROW <- TWEETSLOC[which(TWEETSLOC$tweetnumb == mytweetnumber),]
+			rowoffset <- which(TWEETSLOC$tweetnumb == mytweetnumber)
 			
 			# find the column it concerns
-			X1offset <- (which(as.vector(ROW[,match("X1",colnames(ROW)):ncol(ROW)]) == mydistrictmatch) - 1) + match("X1",colnames(TWEE_CH_TWEE))
+			X1offset <- (which(as.vector(ROW[,match("X1",colnames(ROW)):ncol(ROW)]) == mydistrictmatch) - 1) + match("X1",colnames(TWEETSLOC))
 			
 			# set this value to empty
-			TWEE_CH_TWEE[rowoffset,X1offset] <- ""
+			TWEETSLOC[rowoffset,X1offset] <- ""
 		
 			setTxtProgressBar(pb, i)
 		}
@@ -224,32 +221,35 @@
 		
 	
 	# collapse the column with all local cues to a single variable again
-		TWEE_CH_TWEE <- data.table(TWEE_CH_TWEE)
-		TWEE_CH_TWEE$tweets_local_cues_red <- unite(TWEE_CH_TWEE[,match("X1",colnames(TWEE_CH_TWEE)):ncol(TWEE_CH_TWEE)],"tweets_local_cues_red",sep=";")
-		TWEE_CH_TWEE[20:40,]
+		TWEETSLOC <- data.table(TWEETSLOC)
+		TWEETSLOC$tweets_local_cues_red <- unite(TWEETSLOC[,match("X1",colnames(TWEETSLOC)):ncol(TWEETSLOC)],"tweets_local_cues_red",sep=";")
 		
 		# get rid of unnessary seperators
-		TWEE_CH_TWEE$tweets_local_cues_red <- str_extract(TWEE_CH_TWEE$tweets_local_cues_red,"([A-Z]){2}((;([A-Z]{2}))){0,19}")
-		table(TWEE_CH_TWEE$tweets_local_cues_red)
-		
+		TWEETSLOC$tweets_local_cues_red <- str_extract(TWEETSLOC$tweets_local_cues_red,"([A-Z]){2}((;([A-Z]{2}))){0,19}")
+
 	# was this tweet a local cue for this MP?!
 	
 		resvec <- vector()
-		pb <- txtProgressBar(min = 1, max = nrow(TWEE_CH_TWEE), style = 3)
-		for(i in 1:nrow(TWEE_CH_TWEE))
+		pb <- txtProgressBar(min = 1, max = nrow(TWEETSLOC), style = 3)
+		for(i in 1:nrow(TWEETSLOC))
 		{
-		resvec[i] <-  TWEE_CH_TWEE$tweets_local_cues_red[i] %like% TWEE_CH_TWEE$canton[i]
+		resvec[i] <-  TWEETSLOC$tweets_local_cues_red[i] %like% TWEETSLOC$canton[i]
 		setTxtProgressBar(pb, i)
 		}
 		close(pb)
-	return{resvec}
+	return(resvec)
 	}
-		
+	
+	test <- getupdatedwastweetlocal(TWEE_CH_TWEE,TWEE_CH_HITS)
+	
+	resvecold <- resvec
 	
 		TWEE_CH_TWEE$tweetislocalque <- resvec
 		TWEE_CH_TWEE[20:25,]
 
 		TWEE <- TWEE_CH_TWEE
+	
+	# somewhere around here this can be ran for each data-set with a rbind or something?!
 
 	# output: a 'resvec' with as its value if the tweet was local! 
 
