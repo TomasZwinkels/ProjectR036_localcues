@@ -138,18 +138,29 @@
 
 #################
 
-	CH_TWEE <- read.xlsx("./TWEETS/CHTWEETS_Summary_2020_03_04_final_version.xlsx", sheet = 1)
-	CH_HITS <- read.xlsx("./TWEETS/CHTWEETS_Summary_2020_03_04_final_version.xlsx", sheet = 2)
+
+	# CH
+		CH_TWEE <- read.xlsx("./TWEETS/CHTWEETS_Summary_2020_03_04_final_version.xlsx", sheet = 1)
+		CH_HITS <- read.xlsx("./TWEETS/CHTWEETS_Summary_2020_03_04_final_version.xlsx", sheet = 2)
+		
+		TWEE_CH_TWEE <- data.frame(CH_TWEE)
+		TWEE_CH_HITS <- data.frame(CH_HITS)
+		head(TWEE_CH_TWEE)
+		head(TWEE_CH_HITS)
+
+		colnames(TWEE_CH_HITS)[which(names(TWEE_CH_HITS) == "False.Positive?")] <- "false_positive"
+		colnames(TWEE_CH_HITS)[which(names(TWEE_CH_HITS) == "False.Positive.")] <- "false_positive"
+		TWEE_CH_HITS$false_positive <- trimws(TWEE_CH_HITS$false_positive)
+		
+	# DE
 	
-	TWEE_CH_TWEE <- data.frame(CH_TWEE)
-	TWEE_CH_HITS <- data.frame(CH_HITS)
-	head(TWEE_CH_TWEE)
-	head(TWEE_CH_HITS)
-
-	colnames(TWEE_CH_HITS)[which(names(TWEE_CH_HITS) == "False.Positive?")] <- "false_positive"
-	colnames(TWEE_CH_HITS)[which(names(TWEE_CH_HITS) == "False.Positive.")] <- "false_positive"
-	TWEE_CH_HITS$false_positive <- trimws(TWEE_CH_HITS$false_positive)
-
+		# 2017
+			DE_TWEE_2017 <- read.xlsx("./TWEETS/DETWEETS2017_Summary_2020-04-14_final_version.xlsx", sheet = 1)
+			DE_TWEE_HITS <- read.xlsx("./TWEETS/DETWEETS2017_Summary_2020-04-14_final_version.xlsx", sheet = 2)
+			
+			colnames(DE_TWEE_HITS)[which(names(DE_TWEE_HITS) == "False.Positive?")] <- "false_positive"
+			colnames(DE_TWEE_HITS)[which(names(DE_TWEE_HITS) == "False.Positive.")] <- "false_positive"
+			DE_TWEE_HITS$false_positive <- trimws(DE_TWEE_HITS$false_positive)
 
 #################
 
@@ -159,6 +170,12 @@
 # - an MPs its constituency is the same as the local que found
 
 #################
+
+	getupdatedwastweetlocal <- function(TWEETSLOC,HITSLOC)
+	{
+	# input: 
+		# 1) one data-frame with tweets 
+		# 2) one data-frame with hits
 
 	# make a subset with the false positives
 		nrow(TWEE_CH_HITS)
@@ -181,26 +198,9 @@
 		TWEE_CH_TWEE <- cbind(TWEE_CH_TWEE,LC)
 		head(TWEE_CH_TWEE)
 
-	# get rid of all of the false positives in this data
-	
-		# one example
-			mytweetnumber <- 42674
-			mydistrictmatch <- "BE" 
-		
-			# find the tweet this concerns
-			ROW <- TWEE_CH_TWEE[which(TWEE_CH_TWEE$tweetnumb == mytweetnumber),]
-			rowoffset <- which(TWEE_CH_TWEE$tweetnumb == mytweetnumber)
-			
-			# find the column it concerns
-			X1offset <- (which(as.vector(ROW[,match("X1",colnames(ROW)):ncol(ROW)]) == mydistrictmatch) - 1) + match("X1",colnames(TWEE_CH_TWEE))
-			
-			# set this value to empty
-			TWEE_CH_TWEE[rowoffset,X1offset] <- ""
-	
-	# in a loop (so note how, to safe time, we loop through the false positive here and remove them, instead of checking for every row if..
-	# it is a false positive
-	
-		TWEE_CH_TWEE[which(TWEE_CH_TWEE$tweetnumb == "126805"),]
+	# get rid of all of the false positives in this data in a loop 
+		# (so note how, to safe time, we loop through the false positive here and remove them, instead of checking for every row if..
+		# it is a false positive
 	
 		pb <- txtProgressBar(min = 1, max = nrow(TWEE_CH_FP), style = 3)
 		for(i in 1:nrow(TWEE_CH_FP))
@@ -222,9 +222,6 @@
 		}
 		close(pb)
 		
-		# check a couple
-		TWEE_CH_TWEE[which(TWEE_CH_TWEE$tweetnumb == "126805"),]
-		
 	
 	# collapse the column with all local cues to a single variable again
 		TWEE_CH_TWEE <- data.table(TWEE_CH_TWEE)
@@ -237,7 +234,6 @@
 		
 	# was this tweet a local cue for this MP?!
 	
-
 		resvec <- vector()
 		pb <- txtProgressBar(min = 1, max = nrow(TWEE_CH_TWEE), style = 3)
 		for(i in 1:nrow(TWEE_CH_TWEE))
@@ -246,12 +242,16 @@
 		setTxtProgressBar(pb, i)
 		}
 		close(pb)
-		table(resvec) # indeed a little less the Oliver' count
-
+	return{resvec}
+	}
+		
+	
 		TWEE_CH_TWEE$tweetislocalque <- resvec
 		TWEE_CH_TWEE[20:25,]
 
 		TWEE <- TWEE_CH_TWEE
+
+	# output: a 'resvec' with as its value if the tweet was local! 
 
 #################
 
