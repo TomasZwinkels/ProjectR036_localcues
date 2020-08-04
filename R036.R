@@ -50,6 +50,7 @@
 	library(lubridate)
 	library(ggplot2)
 	library(tidyr)
+	library(scales)
 
 #################
 
@@ -180,8 +181,8 @@
 
 #################
 
-	TWEETSLOC <- TWEE_CH_TWEE
-    HITSLOC <- TWEE_CH_HITS
+	TWEETSLOC <- DE_TWEE_2017
+    HITSLOC <- DE_HITS_2017
 	
 	getupdatedwastweetlocal <- function(TWEETSLOC,HITSLOC)
 	{
@@ -245,13 +246,13 @@
 		pb <- txtProgressBar(min = 1, max = nrow(TWEETSLOC), style = 3)
 		for(i in 1:nrow(TWEETSLOC))
 		{
-			if(names(table(TWEETSLOC$country)) == "CH") # is the country CH, then check for a canton match?
+			if(TWEETSLOC$country[i] == "CH") # is the country CH, then check for a canton match?
 			{
 				resvec[i] <-  TWEETSLOC$tweets_local_cues_red[i] %like% TWEETSLOC$canton[i]
 			}
 			
 			# is country DE, then check for a region or district match?
-			if(names(table(TWEETSLOC$country)) == "DE") # is the country DE, then check if the district matches
+			if(TWEETSLOC$country[i] == "DE") # is the country DE, then check if the district matches
 			{
 				resvec[i] <-  (TWEETSLOC$tweets_local_cues_red[i] %like% TWEETSLOC$WKR_NAME[i]  # district match
 								|
@@ -269,10 +270,7 @@
 		close(pb)
 	return(resvec)
 	}
-	
-	# CH
-	head(resvecold)
-	
+	table(resvec)
 	
 	TWEE_CH_TWEE$tweetislocalque <- getupdatedwastweetlocal(TWEE_CH_TWEE,TWEE_CH_HITS) # this has been tested against the version that ran by itself and it all looked good!
 	
@@ -292,13 +290,18 @@
 	
 	# somewhere around here this can be ran for each data-set with a rbind or something?!
 
-		rbind(	as.data.table(TWEE_CH_TWEE[c("pers_id","country","tweet_timestamp","text","tweetislocalque")]),
-				as.data.table(DE_TWEE_2017[c("pers_id","country","tweet_timestamp","text","tweetislocalque")]),
-				as.data.table(DE_TWEE_2013[c("pers_id","country","tweet_timestamp","text","tweetislocalque")]),
-				as.data.table(DE_TWEE_2009[c("pers_id","country","tweet_timestamp","text","tweetislocalque")]),
-				as.data.table(DE_TWEE_2005[c("pers_id","country","tweet_timestamp","text","tweetislocalque")])
-			 )
+	TWEE_CH_TWEE$candidacies <- rep("L",nrow(TWEE_CH_TWEE))
 
+	TWEE <- rbind(	as.data.table(TWEE_CH_TWEE[c("pers_id","country","tweet_timestamp","text","tweetislocalque","candidacies")]),
+				as.data.table(DE_TWEE_2017[c("pers_id","country","tweet_timestamp","text","tweetislocalque","candidacies")]),
+				as.data.table(DE_TWEE_2013[c("pers_id","country","tweet_timestamp","text","tweetislocalque","candidacies")]),
+				as.data.table(DE_TWEE_2009[c("pers_id","country","tweet_timestamp","text","tweetislocalque","candidacies")]),
+				as.data.table(DE_TWEE_2005[c("pers_id","country","tweet_timestamp","text","tweetislocalque","candidacies")])
+			 )
+	head(TWEE)
+	tail(TWEE)
+	
+	table(TWEE$candidacies)
 
 #################
 
@@ -455,7 +458,11 @@
 					 DT.month = LQTWEEMO.yr_month
 					")
 		tail(DT)
-
+		nrow(DT)
+		
+		DT$country <- substr(DT$pers_id,0,2)
+		table(DT$country)
+		head(DT)
 
 
 #################
@@ -472,28 +479,32 @@
 
 	## total over time
 	
-		TWT <- sqldf("SELECT month, SUM(total_nr_of_tweets) as 'total_sum', SUM(nr_of_tweets_with_localque) as 'lq_sum'
+		TWT <- sqldf("SELECT month, country, SUM(total_nr_of_tweets) as 'total_sum', SUM(nr_of_tweets_with_localque) as 'lq_sum'
 						 FROM DT
-						 GROUP BY month
+						 GROUP BY month, country
 						")
 		head(TWT)
 		tail(TWT)
+		nrow(TWT)
+		table(TWT$country)
 		
 		TWT$timest <- as.POSIXct(paste(TWT$month,"-01 00:00",sep=""))
 
 	# merge in the relevant parliaments
-		PARL_CH <- PARL[which(PARL$country_abb == "CH" & PARL$level == "NT" & PARL$assembly_abb == "NR"),]
-		nrow(PARL_CH)
-		PARL_CH$leg_period_start_asdate  <- as.POSIXct(as.character(PARL_CH$leg_period_start),format=c("%d%b%Y"))
-		PARL_CH$leg_period_end_asdate  <- as.POSIXct(as.character(PARL_CH$leg_period_end),format=c("%d%b%Y"))
+		PARL_RED <- PARL[which((PARL$country_abb == "CH"|PARL$country_abb == "DE") & PARL$level == "NT" & (PARL$assembly_abb == "NR"|PARL$assembly_abb == "BT")),]
+		nrow(PARL_RED)
+		PARL_RED$leg_period_start_asdate  <- as.POSIXct(as.character(PARL_RED$leg_period_start),format=c("%d%b%Y"))
+		PARL_RED$leg_period_end_asdate  <- as.POSIXct(as.character(PARL_RED$leg_period_end),format=c("%d%b%Y"))
 
-	TWT <- sqldf("SELECT TWT.*, PARL_CH.parliament_id, PARL_CH.leg_period_start_asdate
-				  FROM TWT LEFT JOIN PARL_CH
+	TWT <- sqldf("SELECT TWT.*, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate
+				  FROM TWT LEFT JOIN PARL_RED
 				  ON
-				  TWT.timest >= PARL_CH.leg_period_start_asdate
+				  TWT.timest >= PARL_RED.leg_period_start_asdate
 				  AND
-				  TWT.timest <= PARL_CH.leg_period_end_asdate
-					")
+				  TWT.timest <= PARL_RED.leg_period_end_asdate
+				  AND
+				  TWT.country = PARL_RED.country_abb
+				 ")
 	
 	# calculate a percentage
 	TWT$pers_loc <- (TWT$lq_sum / TWT$total_sum)*100
@@ -510,7 +521,9 @@
 	  geom_line(aes(y = pers_loc*1000, colour = "Percentage of tweet with local cue")) +
 	  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Relative number of local cues [%]")) +
 	  scale_x_datetime(limits = c(as.POSIXct("2009-06-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
-	  geom_vline(aes(xintercept=TWT$leg_period_start_asdate), linetype=4, colour="black") 
+	  geom_vline(aes(xintercept=TWT$leg_period_start_asdate), linetype=4, colour="black") +
+	  facet_grid(country ~ .) # facet_grid(country ~ .)
+	  
 	  
 ###
 ## H3: Swiss and German MPs use more local cues when their tenure in the national parliament is low
@@ -524,14 +537,136 @@
 		geom_point() + 
 		geom_smooth(method = lm) +
 		xlab("Parliamentary tenure in years") +
-		ylab("Percentage of tweets that contains a local cue")
+		ylab("Percentage of tweets that contains a local cue") +
+		facet_grid(country ~ .) #+
+	#	scale_y_continuous(trans=log2_trans())
 	
 ###
 ## H2: Swiss and German MPs use more local cues when the electoral system offers incentives to cultivate a personal vote.
 ###	
 
-	  
-#################
+ # see country comparisons above!
+ 
+	aggregate(TWT$pers_loc~TWT$country,data=TWT,mean) # percentage is much higher in Germany then in Switserland
+
+# candidacy type
+
+	# lets get a ELEN with a parliament ID in it
+		
+		ELENBU <- sqldf("SELECT ELEN.*, ELLI.parliament_id
+						 FROM ELEN LEFT JOIN ELLI
+						 ON
+						 ELEN.list_id = ELLI.list_id
+						")
+		head(ELENBU)
+
+	# prepare DT for merge
+		head(DT)
+		DT$timest <- as.POSIXct(paste(DT$month,"-01 00:00",sep=""))
+		
+		nrow(DT)
+		DT <- sqldf("SELECT DT.*, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate
+					  FROM DT LEFT JOIN PARL_RED
+					  ON
+					  DT.timest >= PARL_RED.leg_period_start_asdate
+					  AND
+					  DT.timest <= PARL_RED.leg_period_end_asdate
+					  AND
+					  DT.country = PARL_RED.country_abb
+					 ")
+		head(DT)
+		tail(DT)
+		nrow(DT)
+		
+		table(is.na(DT$parliament_id))
+		# DT[which(is.na(DT$parliament_id)),] # not cases we are using!
+		head(TEMP[which(is.na(TEMP$parliament_id) & TEMP$timest > as.POSIXct("2009-06-01 00:00:00 GMT")),])
+	
+	# merge them
+		TEMP <- sqldf("	SELECT DT.*, ELENBU.candidature_type, ELENBU.candidate_votes
+						FROM DT LEFT JOIN ELENBU
+						ON 
+						DT.pers_id = ELENBU.pers_id
+						AND
+						DT.parliament_id = ELENBU.parliament_id
+		
+		
+					 ")
+		nrow(TEMP)
+		#fix later > note that for German MP with double candidatures I now double the observations!
+		head(TEMP)
+		
+		# set all swiss cases to candidature_type : list
+		table(TEMP$candidature_type)
+		TEMP$candidature_type <- ifelse(TEMP$country == "CH","L",TEMP$candidature_type)
+		table(TEMP$candidature_type)
+		
+		# so, for who is candidacy type missing here?!
+		tail(TEMP[which(is.na(TEMP$candidature_type)),])
+		
+		
+	# plot
+	
+		# aggregate
+		TWT2 <- sqldf("SELECT month, country, candidature_type, 
+					   SUM(total_nr_of_tweets) as 'total_sum', 
+					   SUM(nr_of_tweets_with_localque) as 'lq_sum', 
+					   MIN(timest) as 'timest', 
+					   MIN(leg_period_start_asdate) as 'leg_period_start_asdate'
+						 FROM TEMP
+						 GROUP BY month, country, candidature_type
+						")
+		head(TWT2)
+		tail(TWT2)
+		nrow(TWT2)
+		
+		TWT2$timest <- as.POSIXct(TWT2$timest)
+		TWT2$leg_period_start_asdate <- as.POSIXct(TWT2$leg_period_start_asdate)
+		
+		TWT2$pers_loc <- (TWT2$lq_sum / TWT2$total_sum)*100
+		summary(TWT2$pers_loc)
+		
+		TWT2$country_plus_type <- paste(TWT2$country,TWT2$candidature_type)
+		
+		aggregate(pers_loc~country_plus_type,data=TWT2,mean)
+		
+		TWT2 <- TWT2[which(!TWT2$country_plus_type == "DE NA"),]
+
+		ggplot(TWT2, aes(y=total_sum,x=timest, colour="Total sum")) +
+		  geom_line() +
+		  geom_line(aes(y=lq_sum,x=timest,colour="Number of tweet with local cue")) +
+		  geom_line(aes(y = pers_loc*500, colour = "Percentage of tweet with local cue")) +
+		  scale_y_continuous(sec.axis = sec_axis(~./500, name = "Relative number of local cues [%]")) +
+		  scale_x_datetime(limits = c(as.POSIXct("2009-06-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
+		  geom_vline(aes(xintercept=TWT2$leg_period_start_asdate), linetype=4, colour="black") +
+		  facet_grid(country_plus_type ~ .)
+
+
+		
+		# safeness of seats?
+		
+		TEMP$pers_loc <- (TEMP$nr_of_tweets_with_localque / TEMP$total_nr_of_tweets)*100
+		hist(TEMP$pers_loc)
+		table(is.na(TEMP$pers_loc)) # lots of MP month combos ofcourse in which nobody tweets!
+		
+		summary(TEMP$candidate_votes)
+		TEMP$candidate_votes <- as.numeric(TEMP$candidate_votes)
+		summary(TEMP$candidate_votes)
+		
+		head(TEMP)
+		ggplot(TEMP, aes(candidate_votes, pers_loc)) +
+		geom_point() + 
+		geom_smooth(method = lm) +
+		xlab("NR of votes in last election") +
+		ylab("Percentage of tweets that contains a local cue") +
+		ylim(c(0,25))
+
+
+
+
+
+
+
 
 
 # Building up a parliamentary eppisode data-frame, with politicians as often as they occur in parliaments and their state (e.g. party membership, tenure e.t.c.) at the start of each parliament
