@@ -39,9 +39,16 @@
 	if("lubridate" %in% rownames(installed.packages()) == FALSE) {install.packages("lubridate")}
 	if("ggplot2" %in% rownames(installed.packages()) == FALSE) {install.packages("ggplot2")}
 	if("tidyr" %in% rownames(installed.packages()) == FALSE) {install.packages("tidyr")}
+	if("cowplot" %in% rownames(installed.packages()) == FALSE) {install.packages("cowplot")}
+	if("lme4" %in% rownames(installed.packages()) == FALSE) {install.packages("lme4")}
+	if("stargazer" %in% rownames(installed.packages()) == FALSE) {install.packages("stargazer")}
+	if("sjPlot" %in% rownames(installed.packages()) == FALSE) {install.packages("sjPlot")}
+	if("sjstats" %in% rownames(installed.packages()) == FALSE) {install.packages("sjPlot")}
+	if("ggpubr" %in% rownames(installed.packages()) == FALSE) {install.packages("sjPlot")}
 
 # Load packages
 	library(openxlsx)
+	library(foreign)
 	library(sqldf)
 	library(stringr)
 	library(stringi)
@@ -51,6 +58,12 @@
 	library(ggplot2)
 	library(tidyr)
 	library(scales)
+	library(cowplot)
+	library(lme4)
+	library(stargazer)
+	library(sjPlot)
+	library(sjstats)
+	library(ggpubr)
 
 #################
 
@@ -170,7 +183,19 @@
 		# 2005
 			DE_TWEE_2005 <- read.xlsx("./TWEETS/DETWEETS2005_Summary_final_version.xlsx", sheet = 1)
 			DE_HITS_2005 <- read.xlsx("./TWEETS/DETWEETS2005_Summary_final_version.xlsx", sheet = 2)
-	
+			
+
+#################
+
+# Load data from Stoffel & Sieberer - electoral prospects data in DE
+# see https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/T1Q93A
+
+EPP <- read.dta("bundestag_reelection_prospects.dta")
+head(EPP)
+
+#################
+
+
 
 #################
 
@@ -464,6 +489,10 @@
 		table(DT$country)
 		head(DT)
 
+	# of this returns NA for nr_of_tweets_with_localque, while the total number of tweets is > 0 set local to 0!
+	summary(DT$nr_of_tweets_with_localque)
+	DT$nr_of_tweets_with_localque <- ifelse(is.na(DT$nr_of_tweets_with_localque) & DT$total_nr_of_tweets > 0, 0, DT$nr_of_tweets_with_localque)
+	summary(DT$nr_of_tweets_with_localque)
 
 #################
 
@@ -477,7 +506,10 @@
 ###
 
 
-	## total over time
+	## get the total over time
+	
+	
+	# first, we need to make the date-ranges rele
 	
 		TWT <- sqldf("SELECT month, country, SUM(total_nr_of_tweets) as 'total_sum', SUM(nr_of_tweets_with_localque) as 'lq_sum'
 						 FROM DT
@@ -488,15 +520,17 @@
 		nrow(TWT)
 		table(TWT$country)
 		
-		TWT$timest <- as.POSIXct(paste(TWT$month,"-01 00:00",sep=""))
-
+			TWT$timest <- as.POSIXct(paste(TWT$month,"-01 00:00",sep=""))
+				
 	# merge in the relevant parliaments
 		PARL_RED <- PARL[which((PARL$country_abb == "CH"|PARL$country_abb == "DE") & PARL$level == "NT" & (PARL$assembly_abb == "NR"|PARL$assembly_abb == "BT")),]
 		nrow(PARL_RED)
 		PARL_RED$leg_period_start_asdate  <- as.POSIXct(as.character(PARL_RED$leg_period_start),format=c("%d%b%Y"))
 		PARL_RED$leg_period_end_asdate  <- as.POSIXct(as.character(PARL_RED$leg_period_end),format=c("%d%b%Y"))
 
-	TWT <- sqldf("SELECT TWT.*, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate
+
+
+	TWT <- sqldf("SELECT TWT.*, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
 				  FROM TWT LEFT JOIN PARL_RED
 				  ON
 				  TWT.timest >= PARL_RED.leg_period_start_asdate
@@ -515,16 +549,137 @@
 	TWT <- TWT[which(TWT$total_sum > 150),]
 	nrow(TWT)
 	
+	# warping these leg period start dates to the first day of the month
+	year(TWT$leg_period_start_asdate)
+	month(TWT$leg_period_start_asdate)
+	
+	
+	TWT$leg_period_start_firstmonthday <- as.POSIXct(paste(year(TWT$leg_period_start_asdate),"-",month(TWT$leg_period_start_asdate),"-01 00:00",sep=""))
+
 	ggplot(TWT, aes(y=total_sum,x=timest, colour="Total sum")) +
-	  geom_line() +
-	  geom_line(aes(y=lq_sum,x=timest,colour="Number of tweet with local cue")) +
-	  geom_line(aes(y = pers_loc*1000, colour = "Percentage of tweet with local cue")) +
-	  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Relative number of local cues [%]")) +
-	  scale_x_datetime(limits = c(as.POSIXct("2009-06-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
-	  geom_vline(aes(xintercept=TWT$leg_period_start_asdate), linetype=4, colour="black") +
-	  facet_grid(country ~ .) # facet_grid(country ~ .)
-	  
-	  
+		  geom_line(size=1) +
+		  geom_line(aes(y=lq_sum,x=timest,colour="Number of tweets with local cue"),size=1) +
+		  geom_line(aes(y = pers_loc*1000, colour = "Percentage of tweet with local cue"),size=2) +
+		  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Relative number of local cues [%]")) +
+		  scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
+		  geom_vline(aes(xintercept=TWT$leg_period_start_firstmonthday), linetype=4, colour="darkgreen",size=1.2) +
+		  facet_grid(country ~ .) + # facet_grid(country ~ .)
+		  theme_pubr(base_size =24) +
+		  scale_colour_manual(values = c("darkred", "black", "darkblue")) +
+		  geom_rect(data=TWT, aes(xmin=leg_period_start_firstmonthday- months(6), xmax=leg_period_start_firstmonthday, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen")
+	
+	#### and a regression model
+	
+	
+		TWT$country <- factor(TWT$country,levels=c("DE","CH"))
+	
+	## empty model
+	
+		# the model
+			m_empty 		<- lmer(pers_loc~ 1 +
+								(1 | country)
+								,data=TWT)
+			summary(m_empty)
+			stargazer(m_empty,type="text",intercept.bottom=FALSE)
+	
+	## add a lineair time-trend
+	
+		# the var prep
+			TWT$year <- year(TWT$timest)
+			medyear <- median(TWT$year)
+			medyear
+			TWT$year_cent <- TWT$year - medyear
+			summary(TWT$year_cent)
+			table(TWT$year_cent)
+			
+		# the model
+		
+			# general time trend
+			m_time_gen 		<- lmer(pers_loc~ year_cent +
+								(1 | country)
+								,data=TWT)
+			summary(m_time_gen)
+			stargazer(m_empty,m_time_gen,type="text",intercept.bottom=FALSE)		
+			plot_model(m_time_gen)
+						
+			# a country specific time-trend
+			m_time_country 	<- lmer(pers_loc~ year_cent +
+								(year_cent | country) 
+								,data=TWT)			
+			summary(m_time_country)
+			ranef(m_time_country)
+			se(m_time_country)
+			
+			
+			attr(ranef(m_time_country, condVar = TRUE)[[1]], "postVar") # estimated standard errors are the values on the bottom right
+			anova(m_time_gen,m_time_country) # yes, does fit much better.
+			
+			# some interpretation and inspections
+			ranef(m_time_country)
+			attr(ranef(m_time_country, condVar = TRUE)[[1]], "postVar") # estimated standard errors are the values on the bottom right
+			plot_model(m_time_country,type = "re",se=TRUE)
+			hist(TWT$pers_loc)
+			
+			
+	## and add a campaign season effect
+		
+		# the var prep
+		
+			# lets order TWT by month, just for easier inspection
+			TWT <- TWT[order(TWT$country, TWT$timest),]
+			TWT
+		
+			# number of months before the election - 
+			TWT$NRMonthsBeforeElection <- round(as.numeric((TWT$leg_period_end_asdate - TWT$timest) /30),0) # taken from https://stackoverflow.com/questions/25369817/how-do-i-use-the-lubridate-package-to-calculate-the-number-of-months-between-two
+		
+			# and a dummy
+			TWT$campaign_season <- ifelse(TWT$NRMonthsBeforeElection <= 6,"yes","no")
+			TWT
+		
+		# the next step for the model
+		
+			# model with campaign season as fixed effect
+				m_time_cs 	<- lmer(pers_loc~ year_cent +
+									campaign_season +
+									(year_cent | country) 
+									,data=TWT)			
+				summary(m_time_cs)
+				ranef(m_time_cs)
+				se(m_time_cs)
+				plot_model(m_time_cs)
+				plot_model(m_time_cs,type="re")
+				
+				# some interpretation and inspections
+				mean(TWT$pers_loc)
+				sd(TWT$pers_loc) # so about half a standard deviation more tweeting
+				aggregate(data=TWT,pers_loc~campaign_season,mean) # so from roughly 8.5% to roughly 10.5%
+				aggregate(data=TWT,pers_loc~campaign_season+country,mean) # descriptive difference is quite simular accross countries
+	
+			# model with campaign season as fixed effect
+				m_time_cs_c 	<- lmer(pers_loc~ year_cent +
+									(campaign_season | country) +
+									(year_cent | country) 
+									,data=TWT)			
+				summary(m_time_cs_c)
+				ranef(m_time_cs_c) # effects seem quite simular in size
+				anova(m_time_cs,m_time_cs_c) # indeed, not a better model fit
+	
+	
+	## plotting the effects
+		plot_model(m_time_cs,se=TRUE)
+		plot_model(m_time_cs,type = "re",se=TRUE)
+	
+	# stargazer output (needs quite some manual work as well still)
+	
+	stargazer(m_empty,
+			  m_time_country,
+			  m_time_cs,
+			  type="text",
+			  intercept.bottom=FALSE,
+			  star.cutoffs = c(0.05, 0.01, 0.001))
+	
+	
+
 ###
 ## H3: Swiss and German MPs use more local cues when their tenure in the national parliament is low
 ###
@@ -533,13 +688,90 @@
 		hist(DT$pers_loc)
 		table(is.na(DT$pers_loc)) # lots of MP month combos ofcourse in which nobody tweets!
 		
+		hist(DT$pers_loc)
+		
 		ggplot(DT, aes(tenure, pers_loc)) +
-		geom_point() + 
-		geom_smooth(method = lm) +
+		geom_point(color="darkgrey") + 
+		geom_jitter(height=1,width=1) +
+		geom_smooth(method = lm,size=1.5) +
 		xlab("Parliamentary tenure in years") +
-		ylab("Percentage of tweets that contains a local cue") +
-		facet_grid(country ~ .) #+
-	#	scale_y_continuous(trans=log2_trans())
+		ylab("Percentage of tweets with local cue") +
+		facet_grid(country ~ .) + 
+		scale_x_continuous(trans="sqrt") +
+		scale_y_continuous(trans="sqrt",limits=c(0,100)) +
+		theme_pubr(base_size =24)
+		
+		
+		
+	# lets do a regression model
+		
+		## for a starter, lets remove all of the observations for which we do not have any tweets of MPS
+		nrow(DT)
+		DT <- DT[which(!is.na(DT$total_nr_of_tweets)),]
+		nrow(DT)
+		
+		# prepare DT as well
+		head(DT)
+		DT$timest <- as.POSIXct(paste(DT$month,"-01 00:00",sep=""))
+		
+		## empty model
+		
+			
+			
+			nrofsucces <- DT$nr_of_tweets_with_localque
+			nrpffailures <- DT$total_nr_of_tweets - DT$nr_of_tweets_with_localque
+			BinomialResponseMatrix <- as.matrix(cbind(nrofsucces,nrpffailures))
+			head(BinomialResponseMatrix)
+	
+	
+			# the model
+				m_mp_empty 		<- glmer(BinomialResponseMatrix~ 1 + # m_mp_empty 		<- lmer(pers_loc~ 1 +
+									(1 | country) +
+									(1 | pers_id)
+									,data=DT, family= binomial) # ,data=DT)
+				summary(m_mp_empty)
+				stargazer(m_mp_empty,type="text",intercept.bottom=FALSE)
+				
+				par(mfrow=2:1)
+				hist(predict(m_mp_empty,type="response"),xlim=c(0,1),breaks=20) 
+				hist(DT$pers_loc/100,xlim=c(0,1),breaks=40) # so we can see that the  model is not good at predicting the zero... 
+			
+		## controlling for time
+
+			# the var prep
+			DT$year <- year(DT$timest)
+			medyear <- median(DT$year)
+			medyear
+			DT$year_cent <- DT$year - medyear
+			summary(DT$year_cent)
+			table(DT$year_cent)
+			
+		# the model
+		
+			# general time trend
+				m_mp_time_gen 		<- glmer(BinomialResponseMatrix~ year_cent + # lmer(pers_loc~ year_cent +
+									(1 | country) +
+									(1 | pers_id)
+									,data=DT, family= binomial) # ,data=DT)
+				summary(m_mp_time_gen)
+				stargazer(m_mp_empty,m_mp_time_gen,type="text",intercept.bottom=FALSE)
+		
+						
+			# a country specific time-trend
+				m_mp_time_country 	<- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+									(year_cent | country) +
+									(1 | pers_id)
+									,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_time_country)
+				stargazer(m_mp_empty,m_mp_time_country,type="text",intercept.bottom=FALSE)
+				
+				ranef(m_mp_time_country)
+				se(m_mp_time_country)
+				anova(m_mp_time_gen,m_mp_time_country) # yes, clearly better
+				
+				par(mfrow=2:1)
+					hist(predict(m_mp_empty,type="response"),xlim=c(0,1),breaks=20) # this range really does not look to bad!
+				hist(DT$pers_loc/100,xlim=c(0,1),breaks=40) # so we can see that the  model is not good at predicting the zero...
 	
 ###
 ## H2: Swiss and German MPs use more local cues when the electoral system offers incentives to cultivate a personal vote.
@@ -559,10 +791,6 @@
 						 ELEN.list_id = ELLI.list_id
 						")
 		head(ELENBU)
-
-	# prepare DT for merge
-		head(DT)
-		DT$timest <- as.POSIXct(paste(DT$month,"-01 00:00",sep=""))
 		
 		nrow(DT)
 		DT <- sqldf("SELECT DT.*, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate
@@ -660,6 +888,11 @@
 		xlab("NR of votes in last election") +
 		ylab("Percentage of tweets that contains a local cue") +
 		ylim(c(0,25))
+
+
+
+
+
 
 
 
