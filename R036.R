@@ -757,7 +757,7 @@ head(EPP)
 				stargazer(m_mp_empty,m_mp_time_gen,type="text",intercept.bottom=FALSE)
 		
 						
-			# a country specific time-trend
+			# a country specific time-trend < this is the better model.
 				m_mp_time_country 	<- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
 									(year_cent | country) +
 									(1 | pers_id)
@@ -770,9 +770,40 @@ head(EPP)
 				anova(m_mp_time_gen,m_mp_time_country) # yes, clearly better
 				
 				par(mfrow=2:1)
-					hist(predict(m_mp_empty,type="response"),xlim=c(0,1),breaks=20) # this range really does not look to bad!
-				hist(DT$pers_loc/100,xlim=c(0,1),breaks=40) # so we can see that the  model is not good at predicting the zero...
+				hist(predict(m_mp_time_country,type="response"),xlim=c(0,1),breaks=20) 
+				hist(DT$pers_loc/100,xlim=c(0,1),breaks=40) 
+				dev.off()
 	
+			# and a parliamentary tenure measure
+			
+				# var prep
+				head(DT)
+				
+				hist(DT$tenure)
+				DT$tenure_cent <- scale(DT$tenure, center = TRUE, scale = FALSE)
+				hist(DT$tenure_cent)
+			
+				# general
+				m_mp_tenure 	<- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+									tenure_cent +
+									(year_cent | country) +
+									(1 | pers_id)
+									,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_tenure)
+				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,type="text",intercept.bottom=FALSE)
+				
+				
+				# country specific
+				m_mp_tenure_country <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+											tenure_cent +
+											(tenure_cent | country) +
+											(year_cent | country) +
+											(1 | pers_id)
+											,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_tenure_country)
+				anova(m_mp_tenure,m_mp_tenure_country)
+				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,m_mp_tenure_country,type="text",intercept.bottom=FALSE)
+				
 ###
 ## H2: Swiss and German MPs use more local cues when the electoral system offers incentives to cultivate a personal vote.
 ###	
@@ -858,20 +889,73 @@ head(EPP)
 		
 		aggregate(pers_loc~country_plus_type,data=TWT2,mean)
 		
-		TWT2 <- TWT2[which(!TWT2$country_plus_type == "DE NA"),]
-
-		ggplot(TWT2, aes(y=total_sum,x=timest, colour="Total sum")) +
-		  geom_line() +
-		  geom_line(aes(y=lq_sum,x=timest,colour="Number of tweet with local cue")) +
-		  geom_line(aes(y = pers_loc*500, colour = "Percentage of tweet with local cue")) +
-		  scale_y_continuous(sec.axis = sec_axis(~./500, name = "Relative number of local cues [%]")) +
-		  scale_x_datetime(limits = c(as.POSIXct("2009-06-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
-		  geom_vline(aes(xintercept=TWT2$leg_period_start_asdate), linetype=4, colour="black") +
-		  facet_grid(country_plus_type ~ .)
-
-
+		# so what is the hypothesises order here? # from converation with Stefanie and Natalie
 		
-		# safeness of seats?
+			# [[ x ]] higher means stronger incentives
+				# german list candidacies [[1]]
+				# german mixed candidacies [[2]]
+				# german disctrict candidacies [[3]]
+				# swiss candidacies [[4]]
+	
+	####	
+	# take the regression models from above!
+	####
+	
+	
+	## empty model
+	
+		# the model
+			m2_empty 		<- lmer(pers_loc~ 1 +
+								(1 | country)
+								,data=TWT2)
+			summary(m2_empty)
+			stargazer(m2_empty,type="text",intercept.bottom=FALSE)
+	
+	## time	
+		
+		# var prep
+		
+			# the var prep
+			TWT2$year <- year(TWT2$timest)
+			medyear <- median(TWT2$year)
+			medyear
+			TWT2$year_cent <- TWT2$year - medyear
+			summary(TWT2$year_cent)
+			table(TWT2$year_cent)
+		
+		# the model
+		
+			# a country specific time-trend
+			m2_time_country 	<- lmer(pers_loc~ year_cent +
+								(year_cent | country) 
+								,data=TWT2)			
+			summary(m2_time_country)
+			ranef(m2_time_country)
+			se(m2_time_country)
+		
+	## and the candidacy type
+			
+			# variable prep
+			table(TWT2$country_plus_type)
+			TWT2$country_plus_type <- factor(TWT2$country_plus_type, level=c("DE L","DE LD","DE D","CH L"))
+			
+			# and the model
+			m2_candidate_type <- lmer(pers_loc~year_cent +
+									country_plus_type +
+									(year_cent | country) 
+									,data=TWT2)
+								
+			summary(m2_candidate_type)
+			ranef(m2_candidate_type)
+			se(m2_candidate_type)
+			
+		
+
+#######		
+#### safeness of seats?
+#######
+
+
 		
 		TEMP$pers_loc <- (TEMP$nr_of_tweets_with_localque / TEMP$total_nr_of_tweets)*100
 		hist(TEMP$pers_loc)
