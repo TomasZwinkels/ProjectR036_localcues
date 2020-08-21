@@ -655,14 +655,14 @@ head(EPP)
 				aggregate(data=TWT,pers_loc~campaign_season,mean) # so from roughly 8.5% to roughly 10.5%
 				aggregate(data=TWT,pers_loc~campaign_season+country,mean) # descriptive difference is quite simular accross countries
 	
-			# model with campaign season as fixed effect
+			# model with campaign season as random effect as well
 				m_time_cs_c 	<- lmer(pers_loc~ year_cent +
 									(campaign_season | country) +
 									(year_cent | country) 
 									,data=TWT)			
 				summary(m_time_cs_c)
 				ranef(m_time_cs_c) # effects seem quite simular in size
-				anova(m_time_cs,m_time_cs_c) # indeed, not a better model fit
+				anova(m_time_cs,m_time_cs_c) # indeed, NOT a better model fit
 	
 	
 	## plotting the effects
@@ -793,7 +793,7 @@ head(EPP)
 				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,type="text",intercept.bottom=FALSE)
 				
 				
-				# country specific
+				# country specific #
 				m_mp_tenure_country <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
 											tenure_cent +
 											(tenure_cent | country) +
@@ -801,7 +801,7 @@ head(EPP)
 											(1 | pers_id)
 											,data=DT, family= binomial) #	,data=DT)
 				summary(m_mp_tenure_country)
-				anova(m_mp_tenure,m_mp_tenure_country)
+				anova(m_mp_tenure,m_mp_tenure_country) # NOT better
 				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,m_mp_tenure_country,type="text",intercept.bottom=FALSE)
 				
 ###
@@ -824,7 +824,13 @@ head(EPP)
 		head(ELENBU)
 		
 		nrow(DT)
-		DT <- sqldf("SELECT DT.*, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate
+		
+		nrow(DT)
+		DT <- DT[which(!is.na(DT$total_nr_of_tweets)),]
+		nrow(DT)
+		
+		DT$timest <- as.POSIXct(paste(DT$month,"-01 00:00",sep=""))
+		DT <- sqldf("SELECT DT.*, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
 					  FROM DT LEFT JOIN PARL_RED
 					  ON
 					  DT.timest >= PARL_RED.leg_period_start_asdate
@@ -871,7 +877,8 @@ head(EPP)
 					   SUM(total_nr_of_tweets) as 'total_sum', 
 					   SUM(nr_of_tweets_with_localque) as 'lq_sum', 
 					   MIN(timest) as 'timest', 
-					   MIN(leg_period_start_asdate) as 'leg_period_start_asdate'
+					   MIN(leg_period_start_asdate) as 'leg_period_start_asdate',
+					   MIN(leg_period_end_asdate) as 'leg_period_end_asdate'
 						 FROM TEMP
 						 GROUP BY month, country, candidature_type
 						")
@@ -917,7 +924,7 @@ head(EPP)
 		
 			# the var prep
 			TWT2$year <- year(TWT2$timest)
-			medyear <- median(TWT2$year)
+			medyear <- 2014
 			medyear
 			TWT2$year_cent <- TWT2$year - medyear
 			summary(TWT2$year_cent)
@@ -930,6 +937,8 @@ head(EPP)
 								(year_cent | country) 
 								,data=TWT2)			
 			summary(m2_time_country)
+			stargazer(m2_empty,m2_time_country,type="text",intercept.bottom=FALSE)
+			
 			ranef(m2_time_country)
 			se(m2_time_country)
 		
@@ -946,9 +955,39 @@ head(EPP)
 									,data=TWT2)
 								
 			summary(m2_candidate_type)
+			stargazer(m2_empty,m2_time_country,m2_candidate_type,type="text",intercept.bottom=FALSE)
 			ranef(m2_candidate_type)
 			se(m2_candidate_type)
-			
+	
+	## adding campaign season here as well, as well as the interaction
+	
+		# the var prep
+		
+			# number of months before the election - 
+			TWT2$NRMonthsBeforeElection <- round(as.numeric((TWT2$leg_period_end_asdate - TWT2$timest) /30),0) # taken from https://stackoverflow.com/questions/25369817/how-do-i-use-the-lubridate-package-to-calculate-the-number-of-months-between-two
+		
+			nrow(TWT2)
+			head(TWT2)
+		
+			# and a dummy
+			TWT2$campaign_season <- ifelse(TWT2$NRMonthsBeforeElection <= 6,"yes","no")
+			TWT2
+			table(TWT2$campaign_season)
+		
+		# the next step for the model
+		
+			# model with campaign season as fixed effect
+				m2_time_type_cs  <- lmer(pers_loc~year_cent +
+									country_plus_type * campaign_season +
+									(year_cent | country) 
+									,data=TWT2)	
+				summary(m2_time_type_cs)
+				ranef(m2_time_type_cs)
+				stargazer(m2_empty,m2_time_country,m2_candidate_type,m2_time_type_cs,type="text",intercept.bottom=FALSE)
+				
+				se(m2_time_type_cs)
+				plot_model(m2_time_type_cs)
+				plot_model(m2_time_type_cs,type="re")
 		
 
 #######		
