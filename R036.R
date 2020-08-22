@@ -65,6 +65,11 @@
 	library(sjstats)
 	library(ggpubr)
 
+substrRight <- function(x, n)
+	{
+		substr(x, nchar(x)-n+1, nchar(x))
+	}	
+
 #################
 
 # Load all PCC data, except 'modules': see codebook at https://www.overleaf.com/read/fhykbgcjsmdn
@@ -714,6 +719,8 @@ head(EPP)
 		head(DT)
 		DT$timest <- as.POSIXct(paste(DT$month,"-01 00:00",sep=""))
 		
+		DT$country <- factor(DT$country,levels=c("DE","CH"))
+		
 		## empty model
 		
 			
@@ -774,27 +781,53 @@ head(EPP)
 				hist(DT$pers_loc/100,xlim=c(0,1),breaks=40) 
 				dev.off()
 	
-			# and a parliamentary tenure measure
+		## add age!
+		
+			# the var prep
+				
+				DT$age <- as.numeric(DT$year) - as.numeric(substrRight(DT$pers_id,4))
+				head(DT)
+				
+				median(DT$age)
+				
+				DT$age_cent <- DT$age - median(DT$age)
+				hist(DT$age_cent)
+	
+			# and the model
+				# general
+				m_mp_age 	<- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+									age_cent +
+									(year_cent | country) +
+									(1 | pers_id)
+									,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_age)
+	
+	
+		## and a parliamentary tenure measure
 			
 				# var prep
 				head(DT)
 				
 				hist(DT$tenure)
+				mean(DT$tenure)
 				DT$tenure_cent <- scale(DT$tenure, center = TRUE, scale = FALSE)
 				hist(DT$tenure_cent)
 			
 				# general
 				m_mp_tenure 	<- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+									age_cent +
 									tenure_cent +
 									(year_cent | country) +
 									(1 | pers_id)
 									,data=DT, family= binomial) #	,data=DT)
-				summary(m_mp_tenure)
+				summary(m_mp_tenure) # < this is the better model
 				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,type="text",intercept.bottom=FALSE)
-				
-				
+				ranef(m_mp_tenure)
+				se(m_mp_tenure)
+						
 				# country specific #
 				m_mp_tenure_country <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+											age_cent +
 											tenure_cent +
 											(tenure_cent | country) +
 											(year_cent | country) +
@@ -803,7 +836,38 @@ head(EPP)
 				summary(m_mp_tenure_country)
 				anova(m_mp_tenure,m_mp_tenure_country) # NOT better
 				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,m_mp_tenure_country,type="text",intercept.bottom=FALSE)
+	
+		# intpretation of effect sizes e.t.c.
+		
+				meantenure <- mean(DT$tenure)
+				tenuresd <- sd(DT$tenure)
+				meantenure + (2*tenuresd)
+				lowtenure = 1
+				lowtenurecentvalue <- lowtenure - meantenure
+		
+				fix <- fixef(m_mp_tenure)
+				fix
 				
+				exp(fix[1]+(fix[4]*lowtenurecentvalue))/(1+exp(fix[1]+(fix[4]*lowtenurecentvalue)))*100 # roughly 8.62 with low tenure
+				
+				exp(fix[1])/(1+exp(fix[1]))*100 										# roughly 7.69 at average tenure (7 years)
+				
+				exp(fix[1]+(fix[4]*tenuresd*2))/(1+exp(fix[1]+(fix[4]*tenuresd*2)))*100 # roughly 6.14 with tenure 2 SD above mean (18 years) 
+	
+	
+
+		# some simple (partially) copy/paste able stargazer output - random effects needs to be done manually!
+		
+			stargazer(m_mp_empty,
+					  m_mp_time_country,
+					  m_mp_tenure,
+					  type="latex",
+					  intercept.bottom=FALSE,
+					  star.cutoffs = c(0.05, 0.01, 0.001))
+					  summary(m_mp_tenure)
+
+			plot_model(m_mp_tenure)
+	
 ###
 ## H2: Swiss and German MPs use more local cues when the electoral system offers incentives to cultivate a personal vote.
 ###	
@@ -988,14 +1052,14 @@ head(EPP)
 				se(m2_time_type_cs)
 				plot_model(m2_time_type_cs)
 				plot_model(m2_time_type_cs,type="re")
+				plot_model(m2_time_type_cs)
 		
 
 #######		
 #### safeness of seats?
 #######
 
-
-		
+	
 		TEMP$pers_loc <- (TEMP$nr_of_tweets_with_localque / TEMP$total_nr_of_tweets)*100
 		hist(TEMP$pers_loc)
 		table(is.na(TEMP$pers_loc)) # lots of MP month combos ofcourse in which nobody tweets!
@@ -1009,8 +1073,10 @@ head(EPP)
 		geom_point() + 
 		geom_smooth(method = lm) +
 		xlab("NR of votes in last election") +
-		ylab("Percentage of tweets that contains a local cue") +
-		ylim(c(0,25))
+		ylab("Percentage of tweets with a local cue") +
+		ylim(c(0,25)) + 
+		theme_pubr(base_size =24) +
+		facet_grid(country ~ .)
 
 
 
