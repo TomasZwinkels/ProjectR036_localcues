@@ -45,6 +45,7 @@
 	if("sjPlot" %in% rownames(installed.packages()) == FALSE) {install.packages("sjPlot")}
 	if("sjstats" %in% rownames(installed.packages()) == FALSE) {install.packages("sjPlot")}
 	if("ggpubr" %in% rownames(installed.packages()) == FALSE) {install.packages("sjPlot")}
+	if("dotwhisker" %in% rownames(installed.packages()) == FALSE) {install.packages("dotwhisker")}
 
 # Load packages
 	library(openxlsx)
@@ -64,6 +65,7 @@
 	library(sjPlot)
 	library(sjstats)
 	library(ggpubr)
+	library(dotwhisker)
 
 substrRight <- function(x, n)
 	{
@@ -864,7 +866,6 @@ head(EPP)
 					  type="latex",
 					  intercept.bottom=FALSE,
 					  star.cutoffs = c(0.05, 0.01, 0.001))
-					  summary(m_mp_tenure)
 
 			plot_model(m_mp_tenure)
 	
@@ -973,6 +974,8 @@ head(EPP)
 	####
 	
 	
+	TWT2$country <- factor(TWT2$country,levels=c("DE","CH"))
+	
 	## empty model
 	
 		# the model
@@ -996,12 +999,25 @@ head(EPP)
 		
 		# the model
 		
+			# a time-trend
+			m2_time	<- lmer(pers_loc~ year_cent +
+								(1 | country) 
+								,data=TWT2)			
+			summary(m2_time)
+			stargazer(m2_empty,m2_time,type="text",intercept.bottom=FALSE)
+			
+			ranef(m2_time)
+			se(m2_time)
+			
+		
 			# a country specific time-trend
 			m2_time_country 	<- lmer(pers_loc~ year_cent +
 								(year_cent | country) 
 								,data=TWT2)			
 			summary(m2_time_country)
 			stargazer(m2_empty,m2_time_country,type="text",intercept.bottom=FALSE)
+			
+			anova(m2_time,m2_time_country)
 			
 			ranef(m2_time_country)
 			se(m2_time_country)
@@ -1020,6 +1036,7 @@ head(EPP)
 								
 			summary(m2_candidate_type)
 			stargazer(m2_empty,m2_time_country,m2_candidate_type,type="text",intercept.bottom=FALSE)
+			
 			ranef(m2_candidate_type)
 			se(m2_candidate_type)
 	
@@ -1046,14 +1063,27 @@ head(EPP)
 									(year_cent | country) 
 									,data=TWT2)	
 				summary(m2_time_type_cs)
-				ranef(m2_time_type_cs)
 				stargazer(m2_empty,m2_time_country,m2_candidate_type,m2_time_type_cs,type="text",intercept.bottom=FALSE)
 				
+				ranef(m2_time_type_cs)
 				se(m2_time_type_cs)
+				
 				plot_model(m2_time_type_cs)
 				plot_model(m2_time_type_cs,type="re")
 				plot_model(m2_time_type_cs)
+	
+
+	# some simple (partially) copy/paste able stargazer output - random effects needs to be done manually!
 		
+			stargazer(m2_empty,
+					  m2_time_country,
+					  m2_candidate_type,
+					  m2_time_type_cs,
+					  type="latex",
+					  intercept.bottom=FALSE,
+					  star.cutoffs = c(0.05, 0.01, 0.001))
+
+			summary(m2_time_type_cs)
 
 #######		
 #### safeness of seats?
