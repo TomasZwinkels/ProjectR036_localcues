@@ -66,6 +66,7 @@
 	library(sjstats)
 	library(ggpubr)
 	library(dotwhisker)
+	library(psych)
 
 substrRight <- function(x, n)
 	{
@@ -334,6 +335,7 @@ head(EPP)
 	tail(TWEE)
 	
 	table(TWEE$candidacies)
+	table(TWEE$country)
 
 #################
 
@@ -500,6 +502,16 @@ head(EPP)
 	summary(DT$nr_of_tweets_with_localque)
 	DT$nr_of_tweets_with_localque <- ifelse(is.na(DT$nr_of_tweets_with_localque) & DT$total_nr_of_tweets > 0, 0, DT$nr_of_tweets_with_localque)
 	summary(DT$nr_of_tweets_with_localque)
+
+	# a very basic descriptive
+	DT$percentage_local_indvlevel <- DT$nr_of_tweets_with_localque / DT$total_nr_of_tweets
+	head(DT)
+	tail(DT)
+	summary(DT$percentage_local_indvlevel)
+	winsor(DT$percentage_local_indvlevel)
+	hist(DT$percentage_local_indvlevel)
+	
+	table(DT$parliament_id) # making sure we do this over the right time-frame
 
 #################
 
