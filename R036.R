@@ -160,6 +160,17 @@ substrRight <- function(x, n)
 
 #################
 
+#################
+
+# Oliver also made a script to find out if a tweet was a local que and got a slightly different result, here I am loading his data so I can compare the difference below.
+
+	# PLEASE NOTE THAT THIS	needs to be loaded first because Oliver uses some of the same filesnames as I do and I need to overwrite dataframes otherwise my script does not work
+# load("Reliability_Check_2022-02-17_1407.RData") 3 not done by default because there are a lot of dataframes in here I do not need
+
+ls()
+
+#################
+
 
 	# CH
 		CH_TWEE <- read.xlsx("./TWEETS/CHTWEETS_Summary_2020_03_04_final_version.xlsx", sheet = 1)
@@ -195,15 +206,20 @@ substrRight <- function(x, n)
 
 #################
 
-# Load data from Stoffel & Sieberer - electoral prospects data in DE
+# Load data from Stoffel & Sieberer - electoral prospects data in DE - this with the idea that it is in particular those MPs that need the votes that will do this.
 # see https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/T1Q93A
 
-EPP <- read.dta("bundestag_reelection_prospects.dta")
+EPP <- read.dta("bundestag_reelection_prospects.dta") # note on 09/02/2022 --> trows an error now about the dataversion, this needs to be looked at.
 head(EPP)
 
 #################
 
+# Oliver also made a script to find out if a tweet was a local que and got a slightly different result, here I am loading his data so I can compare the difference below.
 
+# load("Reliability_Check_2022-02-17_1407.RData") 3 not done by default because there are a lot of dataframes in here I do not need
+ls()
+
+#################
 
 #################
 
@@ -228,14 +244,14 @@ head(EPP)
 		colnames(HITSLOC)[which(names(HITSLOC) == "False.Positive.")] <- "false_positive"
 		HITSLOC$false_positive <- trimws(HITSLOC$false_positive)
 
-	# make a subset with the false positives
+	# make a subset with the false positives (this is just helpful later on, the TWEETSLOC sheet is the one that forms the basis here!)
 		HITS_FP <- HITSLOC[which(HITSLOC$false_positive == "Yes"),]
 
 	# when there are multiple local cues, split them accross columns
 		
 		# implement the split
-		longest <- max(str_count(TWEETSLOC$tweets_local_cues,";"),na.rm=T)
-		LC <- data.frame(str_split_fixed(TWEETSLOC$tweets_local_cues,";",longest+1))
+		longest <- max(str_count(TWEETSLOC$tweets_local_cues,";"),na.rm=T) 
+		LC <- data.frame(str_split_fixed(TWEETSLOC$tweets_local_cues,";",longest+1)) # what happens here when there is only one!
 		head(LC)
 		
 		TWEETSLOC <- cbind(TWEETSLOC,LC)
@@ -255,7 +271,7 @@ head(EPP)
 			ROW <- TWEETSLOC[which(TWEETSLOC$tweetnumb == mytweetnumber),]
 			rowoffset <- which(TWEETSLOC$tweetnumb == mytweetnumber)
 			
-			# find the column it concerns
+			# find the column it concerns, right so this is KEY, it is not the tweet that is deleted here, it is one specific match that is set to blank!
 			X1offset <- (which(as.vector(ROW[,match("X1",colnames(ROW)):ncol(ROW)]) == mydistrictmatch) - 1) + match("X1",colnames(TWEETSLOC))
 			
 			# set this value to empty
@@ -266,9 +282,9 @@ head(EPP)
 		close(pb)
 		
 	
-	# collapse the column with all local cues to a single variable again
+	# collapse the column with all local cues to a single variable again, what happens here however to the Swiss case? Same story, can also be multiple hits
 		TWEETSLOC <- data.table(TWEETSLOC)
-		TWEETSLOC$tweets_local_cues_red <- unite(TWEETSLOC[,match("X1",colnames(TWEETSLOC)):ncol(TWEETSLOC)],"tweets_local_cues_red",sep=";")
+		TWEETSLOC$tweets_local_cues_red <- unite(TWEETSLOC[,match("X1",colnames(TWEETSLOC)):ncol(TWEETSLOC)],"tweets_local_cues_red",sep=";") # right, so here it is all simplified again, makes sense
 		
 		# get rid of unnessary seperators (WHY?!)
 		# TWEETSLOC$tweets_local_cues_red <- str_extract(TWEETSLOC$tweets_local_cues_red,"([A-Z]){2}((;([A-Z]{2}))){0,19}")
@@ -277,28 +293,27 @@ head(EPP)
 	
 		resvec <- vector()
 		pb <- txtProgressBar(min = 1, max = nrow(TWEETSLOC), style = 3)
-		for(i in 1:nrow(TWEETSLOC))
+		for(j in 1:nrow(TWEETSLOC))
 		{
-			if(TWEETSLOC$country[i] == "CH") # is the country CH, then check for a canton match?
+			if(TWEETSLOC$country[j] == "CH") # is the country CH, then check for a canton match?
 			{
-				resvec[i] <-  TWEETSLOC$tweets_local_cues_red[i] %like% TWEETSLOC$canton[i]
+				resvec[j] <-  like(TWEETSLOC$tweets_local_cues_red[j],paste("(;|^)",TWEETSLOC$canton[j],"(;|$)",sep=""))
 			}
 			
 			# is country DE, then check for a region or district match?
-			if(TWEETSLOC$country[i] == "DE") # is the country DE, then check if the district matches
+			if(TWEETSLOC$country[j] == "DE") # is the country DE, then check if their are local district matches as well .
 			{
-				resvec[i] <-  (TWEETSLOC$tweets_local_cues_red[i] %like% TWEETSLOC$WKR_NAME[i]  # district match
-								|
+				resvec[j] <-  like(TWEETSLOC$tweets_local_cues_red[j], paste("(;|^)",TWEETSLOC$WKR_NAME[j],"(;|$)",sep="")) |
 								length(
 										intersect(
-												unlist(strsplit(as.character(TWEETSLOC$WKR_in_LAND[i]), "\\|")),
-												unlist(strsplit(as.character(TWEETSLOC$tweets_local_cues_red[i]), ";"))
-												 ))>0
-											   )
+												unlist(split(as.character(TWEETSLOC$WKR_in_LAND[j]), "\\|")),
+												unlist(strsplit(as.character(TWEETSLOC$tweets_local_cues_red[j]), ";"))
+												 ))>0 
+											     
 				
 			}
 		
-		setTxtProgressBar(pb, i)
+		setTxtProgressBar(pb, j)
 		}
 		close(pb)
 	return(resvec)
@@ -306,11 +321,26 @@ head(EPP)
 	table(resvec)
 	
 	TWEE_CH_TWEE$tweetislocalque <- getupdatedwastweetlocal(TWEE_CH_TWEE,TWEE_CH_HITS) # this has been tested against the version that ran by itself and it all looked good!
+	table(TWEE_CH_TWEE$tweetislocalque)
+	sum(table(TWEE_CH_TWEE$tweetislocalque))
+	
+	# investigating some potential issues with the function above that Oliver pointed out on the 17th of Feb
+	table(TWEETSLOC$tweets_local_cues_red) 
+	table(TWEETSLOC$canton)
+	
+	# testing the behavior of %like% 
+	veca <- c("berlin-ost","ost berlin","ost berlin ost","berlin","paris")
+	
+	veca %like% "berlin" # ok, so this does go wrong indeed!, This has been fixed above now I think!
+	veca %like% paste("(;|^)","berlin","(;|$)",sep="") 
+	like(veca,paste("(;|^)","berlin","(;|$)",sep=""))
 	
 	# DE
 	
 		# DE 2017 
 		DE_TWEE_2017$tweetislocalque <- getupdatedwastweetlocal(DE_TWEE_2017,DE_HITS_2017)
+		table(DE_TWEE_2017$tweetislocalque)
+		sum(table(DE_TWEE_2017$tweetislocalque))
 		
 		# DE 2013
 		DE_TWEE_2013$tweetislocalque <- getupdatedwastweetlocal(DE_TWEE_2013,DE_HITS_2013)
@@ -336,6 +366,103 @@ head(EPP)
 	
 	table(TWEE$candidacies)
 	table(TWEE$country)
+	
+		# comparing what I have with what Oliver made
+		
+			# Merge the No,Yes and No category (as those hits that contain a "no" are true hits, i.e. true positives) <-- code from Oliver '. I don’t recode this variable in my script, so to make the classification obvious, I suggest running this additional bit of code:'
+
+				table(TWEETSCODED$false_positive) # the variable Oliver mentioned in his email was not correct (it did not exist, I think he should have suggested me to use the variable named 'false_positive')
+				TWEETSCODED[TWEETSCODED$false_positive=="No,Yes",]$false_positive <-  "true positive"
+				TWEETSCODED[TWEETSCODED$false_positive=="No",]$false_positive <-  "true positive"
+				TWEETSCODED[TWEETSCODED$false_positive=="Yes",]$false_positive <-  "false positive"
+				table(TWEETSCODED$tweets_local_cues)
+				table(TWEETSCODED$false_positive)
+			
+		head(TWEETSCODED)
+		names(TWEETSCODED)
+		nrow(TWEETSCODED)
+	
+	# so the totals match here
+	table(TWEE_CH_TWEE$tweetislocalque)
+	TOT_TWEET_COUNT_ALT
+	
+	# lets see if these aggregates from Oliver indeed come from the 'false_positives' variable
+	table(TWEETSCODED$country,TWEETSCODED$false_positive) # not a match! I end up with a higher number here for CH! -- so Oliver needs to check this!
+	
+	# to compare Oliver and my count we need to match on tweet_id
+	
+		# for the swiss case
+			TWEETSCODED_OLIVER_CH <- TWEETSCODED[which(TWEETSCODED$country == "CH"),]
+			nrow(TWEETSCODED_OLIVER_CH)
+			nrow(TWEE_CH_TWEE)
+			
+			NEW <- sqldf("SELECT TWEE_CH_TWEE.pers_id, TWEE_CH_TWEE.country, TWEE_CH_TWEE.tweet_id, TWEE_CH_TWEE.tweetislocalque, TWEE_CH_TWEE.tweets_local_cues, TWEE_CH_TWEE.text, TWEE_CH_TWEE.canton, TWEETSCODED.false_positive
+						  FROM TWEE_CH_TWEE LEFT JOIN TWEETSCODED
+						  ON 
+						  TWEE_CH_TWEE.tweet_id = TWEETSCODED.tweet_id
+						")
+			nrow(NEW) # so, one row more... why? 
+			length(unique(TWEE_CH_TWEE$tweet_id))
+			length(unique(TWEETSCODED_OLIVER_CH$tweet_id))
+			
+			NEW$tweet_id_char <- as.character(NEW$tweet_id)
+			
+			head(NEW)
+			table(NEW$tweetislocalque,NEW$false_positive)
+			
+			# now, who are these 347 cases?
+				CH_ERR <- NEW[which(NEW$tweetislocalque == FALSE & NEW$false_positive == "true positive"),]
+				head(CH_ERR)
+		
+		# for the German cohorts
+		
+			# difference between me and Oliver descriptively
+			# 2005
+				table(DE_TWEE_2005$tweetislocalque) # I count 275
+				TOT_TWEET_COUNT_ALT # Oliver counts 357<MORE -- (note that the number is higher below because of the duplicated cases!)
+				
+				TWEETSCODED_OLIVER_DE2005 <- TWEETSCODED[which(TWEETSCODED$df_id == "DE_2005"),]
+				nrow(TWEETSCODED_OLIVER_DE2005)
+				nrow(DE_TWEE_2005)
+				
+				NEW_DE2005 <- sqldf("SELECT DE_TWEE_2005.pers_id, DE_TWEE_2005.country, DE_TWEE_2005.tweet_id, DE_TWEE_2005.tweetislocalque, DE_TWEE_2005.tweets_local_cues, DE_TWEE_2005.text, DE_TWEE_2005.WKR_NAME, TWEETSCODED.false_positive
+							  FROM DE_TWEE_2005 LEFT JOIN TWEETSCODED
+							  ON 
+							  DE_TWEE_2005.tweet_id = TWEETSCODED.tweet_id
+							")
+				nrow(NEW_DE2005) # so we won a couple of cases here for some weird reason... rouding issues in excel again?
+				length(unique(DE_TWEE_2005$tweet_id)) # so yes indeed, the tweets IDs are not unique!! 
+				length(unique(TWEETSCODED_OLIVER_DE2005$tweet_id))
+				
+				DUBS <- DE_TWEE_2005[which(duplicated(DE_TWEE_2005$tweet_id)),]
+				DUBS <- DUBS[order(DUBS$tweet_id),]
+				nrow(DUBS)
+				head(DUBS)
+				tail(DUBS)
+				
+				# inspect some
+				DE_TWEE_2005[which(DE_TWEE_2005$tweet_id==1387652418),] # this is actually also the exaxt same tweet?
+				DE_TWEE_2005[which(DE_TWEE_2005$tweet_id==2612056748),] # this is actually also the exaxt same tweet?
+				
+				NEW_DE2005$tweet_id_char <- as.character(NEW_DE2005$tweet_id)
+				head(NEW_DE2005)
+				
+				# how many mismatches?!
+				table(NEW_DE2005$tweetislocalque,NEW_DE2005$false_positive) # so same thing, Oliver catches mores
+				
+				# lets inspect these mismatches
+				DE2005_ERR <- NEW_DE2005[which(NEW_DE2005$tweetislocalque == FALSE & NEW_DE2005$false_positive == "true positive"),]
+				head(DE2005_ERR)
+				nrow(DE2005_ERR)
+				
+				# what do I see?! -- 'tweets local cues' clearly gives a hit, howevever! Is the MP its own district among these?
+				
+			# 2009
+				table(DE_TWEE_2009$tweetislocalque) # I count 12087
+				TOT_TWEET_COUNT_ALT # Oliver counts 15635<MORE
+			# 2013
+				table(DE_TWEE_2013$tweetislocalque) # I count 25060
+				TOT_TWEET_COUNT_ALT # Oliver counts 32001<MORE
 
 #################
 
@@ -511,7 +638,7 @@ head(EPP)
 	winsor(DT$percentage_local_indvlevel)
 	hist(DT$percentage_local_indvlevel)
 	
-	table(DT$parliament_id) # making sure we do this over the right time-frame
+	table(DT$parliament_id) # making sure we do this over the right time-frame (has this ever worked?!)
 
 #################
 
@@ -875,7 +1002,7 @@ head(EPP)
 			stargazer(m_mp_empty,
 					  m_mp_time_country,
 					  m_mp_tenure,
-					  type="latex",
+					  type="text",
 					  intercept.bottom=FALSE,
 					  star.cutoffs = c(0.05, 0.01, 0.001))
 
@@ -1091,7 +1218,7 @@ head(EPP)
 					  m2_time_country,
 					  m2_candidate_type,
 					  m2_time_type_cs,
-					  type="latex",
+					  type="text",
 					  intercept.bottom=FALSE,
 					  star.cutoffs = c(0.05, 0.01, 0.001))
 
