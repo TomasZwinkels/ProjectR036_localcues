@@ -31,6 +31,7 @@
 
 # Install packages if necessary
 	if("openxlsx" %in% rownames(installed.packages()) == FALSE) {install.packages("openxlsx")}
+	if("foreign" %in% rownames(installed.packages()) == FALSE) {install.packages("foreign")}
 	if("sqldf" %in% rownames(installed.packages()) == FALSE) {install.packages("sqldf")}
 	if("stringr" %in% rownames(installed.packages()) == FALSE) {install.packages("stringr")}
 	if("stringi" %in% rownames(installed.packages()) == FALSE) {install.packages("stringi")}
@@ -46,6 +47,7 @@
 	if("sjstats" %in% rownames(installed.packages()) == FALSE) {install.packages("sjPlot")}
 	if("ggpubr" %in% rownames(installed.packages()) == FALSE) {install.packages("sjPlot")}
 	if("dotwhisker" %in% rownames(installed.packages()) == FALSE) {install.packages("dotwhisker")}
+	if("psych" %in% rownames(installed.packages()) == FALSE) {install.packages("psych")}
 
 # Load packages
 	library(openxlsx)
@@ -211,6 +213,9 @@ ls()
 
 EPP <- read.dta("bundestag_reelection_prospects.dta") # note on 09/02/2022 --> trows an error now about the dataversion, this needs to be looked at.
 head(EPP)
+
+# maybe this setup does work?
+EPP <- read.foreign("bundestag_reelection_prospects.dta", "dta", package = "stata")
 
 #################
 
@@ -535,11 +540,14 @@ ls()
 
 		# Now, we prepare RESEREDLONG for aggregation on the MP-month level
 		# To that end, we generate a month variable like we did before.
-		RESEREDLONG$month <- str_extract(as.character(RESEREDLONG$day), "[0-9]{4}-[0-9]{2}") # [0-9]{4}-[0-9]{2} matches 4 digits followed by a hyphen and 2 digits
+		
+		RESEREDLONG$monthnew <- format(as.Date(RESEREDLONG$day, format = "%Y-%m-%d"), "%Y-%m")
+		
+		# older slower version
+			# RESEREDLONG$month <- str_extract(as.character(RESEREDLONG$day), "[0-9]{4}-[0-9]{2}") # [0-9]{4}-[0-9]{2} matches 4 digits followed by a hyphen and 2 digits
 
 		# Obtain the mode for tenure for every MP-month in the RESEREDLONG
 		# a) Get tenure mode by groups (pers_id, month) 
-		
 		
 			# custom function from Oliver
 			getmode <- function(v) {
@@ -601,6 +609,11 @@ ls()
 
 		head(RESEREDMONTH)
 		head(TWEEMO)
+		
+		table(RESEREDMONTH$pers_id %in% TWEEMO$pers_id) # lots of people in RESERED with no tweets
+		table(TWEEMO$pers_id %in% RESEREDMONTH$pers_id) # no people in TWEEMO that are not in RESERED
+		RESEREDMONTH$country <- substr(RESEREDMONTH$pers_id,0,2)
+		table(RESEREDMONTH$country)
 
 		DT <- sqldf("SELECT RESEREDMONTH.*, TWEEMO.total_nr_of_tweets
 					 FROM RESEREDMONTH LEFT JOIN TWEEMO
@@ -625,8 +638,8 @@ ls()
 		table(DT$country)
 		head(DT)
 
-	# of this returns NA for nr_of_tweets_with_localque, while the total number of tweets is > 0 set local to 0!
-	summary(DT$nr_of_tweets_with_localque)
+	# if this returns NA for nr_of_tweets_with_localque, while the total number of tweets is > 0 set local to 0!
+	summary(DT$nr_of_tweets_with_localque) # so this tells us that the far majority of MP month combos comes with no tweets at all, does that make sense?
 	DT$nr_of_tweets_with_localque <- ifelse(is.na(DT$nr_of_tweets_with_localque) & DT$total_nr_of_tweets > 0, 0, DT$nr_of_tweets_with_localque)
 	summary(DT$nr_of_tweets_with_localque)
 
@@ -635,10 +648,7 @@ ls()
 	head(DT)
 	tail(DT)
 	summary(DT$percentage_local_indvlevel)
-	winsor(DT$percentage_local_indvlevel)
 	hist(DT$percentage_local_indvlevel)
-	
-	table(DT$parliament_id) # making sure we do this over the right time-frame (has this ever worked?!)
 
 #################
 
@@ -653,7 +663,6 @@ ls()
 
 
 	## get the total over time
-	
 	
 	# first, we need to make the date-ranges rele
 	
@@ -673,8 +682,6 @@ ls()
 		nrow(PARL_RED)
 		PARL_RED$leg_period_start_asdate  <- as.POSIXct(as.character(PARL_RED$leg_period_start),format=c("%d%b%Y"))
 		PARL_RED$leg_period_end_asdate  <- as.POSIXct(as.character(PARL_RED$leg_period_end),format=c("%d%b%Y"))
-
-
 
 	TWT <- sqldf("SELECT TWT.*, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
 				  FROM TWT LEFT JOIN PARL_RED
@@ -767,7 +774,7 @@ ls()
 			hist(TWT$pers_loc)
 			
 			
-	## and add a campaign season effect
+	## and add a model with a campaign season effect
 		
 		# the var prep
 		
@@ -778,9 +785,8 @@ ls()
 			# number of months before the election - 
 			TWT$NRMonthsBeforeElection <- round(as.numeric((TWT$leg_period_end_asdate - TWT$timest) /30),0) # taken from https://stackoverflow.com/questions/25369817/how-do-i-use-the-lubridate-package-to-calculate-the-number-of-months-between-two
 		
-			# and a dummy
+			# and the core dummy
 			TWT$campaign_season <- ifelse(TWT$NRMonthsBeforeElection <= 6,"yes","no")
-			TWT
 		
 		# the next step for the model
 		
@@ -864,8 +870,6 @@ ls()
 		
 		## empty model
 		
-			
-			
 			nrofsucces <- DT$nr_of_tweets_with_localque
 			nrpffailures <- DT$total_nr_of_tweets - DT$nr_of_tweets_with_localque
 			BinomialResponseMatrix <- as.matrix(cbind(nrofsucces,nrpffailures))
@@ -978,6 +982,17 @@ ls()
 				anova(m_mp_tenure,m_mp_tenure_country) # NOT better
 				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,m_mp_tenure_country,type="text",intercept.bottom=FALSE)
 	
+		# add a campaign season effect here at the MP/month level.
+		
+			# variable generation taken from above
+			# number of months before the election - 
+			DT$NRMonthsBeforeElection <- round(as.numeric((DT$leg_period_end_asdate - DT$timest) /30),0) # taken from https://stackoverflow.com/questions/25369817/how-do-i-use-the-lubridate-package-to-calculate-the-number-of-months-between-two
+		
+			# and a dummy
+			TWT$campaign_season <- ifelse(TWT$NRMonthsBeforeElection <= 6,"yes","no")
+			TWT
+	
+	
 		# intpretation of effect sizes e.t.c.
 		
 				meantenure <- mean(DT$tenure)
@@ -997,7 +1012,7 @@ ls()
 	
 	
 
-		# some simple (partially) copy/paste able stargazer output - random effects needs to be done manually!
+		# some simple (partially) copy/paste able stargazer output - RANDOM SLOPES NEED TO BE DONE MANUALLU!
 		
 			stargazer(m_mp_empty,
 					  m_mp_time_country,
@@ -1246,15 +1261,6 @@ ls()
 		ylim(c(0,25)) + 
 		theme_pubr(base_size =24) +
 		facet_grid(country ~ .)
-
-
-
-
-
-
-
-
-
 
 
 

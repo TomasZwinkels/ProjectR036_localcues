@@ -18,6 +18,7 @@ Sys.getlocale(category = "LC_ALL")
 setwd("I:/Netzlaufwerk UNIBAS 2021-08-29/Analyses/Paper - Twitter Geographic Cues")
 setwd("E:/Netzlaufwerk UNIBAS 2021-08-29/Analyses/Paper - Twitter Geographic Cues")
 setwd("D:/Netzlaufwerk UNIBAS 2021-08-29/Analyses/Paper - Twitter Geographic Cues")
+setwd("F:/PolCa/Analysis/R/ProjectR036_localcues")
 
 # Install packages if necessary
 if('rgdal' %in% rownames(installed.packages()) == FALSE) {install.packages('rgdal')}
@@ -152,8 +153,8 @@ arrange.vars <- function(data, vars){
 
 
 # CH
-CH_TWEE <- read_xlsx("./False_Positive_Checks/CHTWEETS_Summary_2020_03_04_final_version.xlsx", sheet = "Tweets")
-CH_HITS <- read_xlsx("./False_Positive_Checks/CHTWEETS_Summary_2020_03_04_final_version.xlsx", sheet = "Hits")
+CH_TWEE <- read_xlsx("./TWEETS/CHTWEETS_Summary_2020_03_04_final_version.xlsx", sheet = "Tweets")
+CH_HITS <- read_xlsx("./TWEETS/CHTWEETS_Summary_2020_03_04_final_version.xlsx", sheet = "Hits")
 
 TWEE_CH_TWEE <- data.frame(CH_TWEE)
 TWEE_CH_HITS <- data.frame(CH_HITS)
@@ -167,28 +168,28 @@ TWEE_CH_HITS$false_positive <- trimws(TWEE_CH_HITS$false_positive)
 # DE
 
 # 2017
-DE_TWEE_2017 <- read_xlsx("./False_Positive_Checks/DETWEETS2017_Summary_2020-04-14_final_version.xlsx", sheet = "Tweets")
-DE_HITS_2017 <- read_xlsx("./False_Positive_Checks/DETWEETS2017_Summary_2020-04-14_final_version.xlsx", sheet = "Hits")
+DE_TWEE_2017 <- read_xlsx("./TWEETS/DETWEETS2017_Summary_2020-04-14_final_version.xlsx", sheet = "Tweets")
+DE_HITS_2017 <- read_xlsx("./TWEETS/DETWEETS2017_Summary_2020-04-14_final_version.xlsx", sheet = "Hits")
 
 # 2013
-DE_TWEE_2013 <- read_xlsx("./False_Positive_Checks/DETWEETS2013_Summary_2020-04-08_final_version.xlsx", sheet = "Tweets")
-DE_HITS_2013 <- read_xlsx("./False_Positive_Checks/DETWEETS2013_Summary_2020-04-08_final_version.xlsx", sheet = "Hits")
+DE_TWEE_2013 <- read_xlsx("./TWEETS/DETWEETS2013_Summary_2020-04-08_final_version.xlsx", sheet = "Tweets")
+DE_HITS_2013 <- read_xlsx("./TWEETS/DETWEETS2013_Summary_2020-04-08_final_version.xlsx", sheet = "Hits")
 
 # 2009
-DE_TWEE_2009 <- read_xlsx("./False_Positive_Checks/DETWEETS2009_Summary_final_version.xlsx", sheet = "Tweets")
-DE_HITS_2009 <- read_xlsx("./False_Positive_Checks/DETWEETS2009_Summary_final_version.xlsx", sheet = "Hits")
+DE_TWEE_2009 <- read_xlsx("./TWEETS/DETWEETS2009_Summary_final_version.xlsx", sheet = "Tweets")
+DE_HITS_2009 <- read_xlsx("./TWEETS/DETWEETS2009_Summary_final_version.xlsx", sheet = "Hits")
 
 # 2005
-DE_TWEE_2005 <- read_xlsx("./False_Positive_Checks/DETWEETS2005_Summary_final_version.xlsx", sheet = "Tweets")
-DE_HITS_2005 <- read_xlsx("./False_Positive_Checks/DETWEETS2005_Summary_final_version.xlsx", sheet = "Hits")
+DE_TWEE_2005 <- read_xlsx("./TWEETS/DETWEETS2005_Summary_final_version.xlsx", sheet = "Tweets")
+DE_HITS_2005 <- read_xlsx("./TWEETS/DETWEETS2005_Summary_final_version.xlsx", sheet = "Hits")
 
 
 ## Load the random sample coded by Jana (750 Tweets per country)
-#RS_CH_TWEE <- read_xlsx("./False_Positive_Checks/Manual_Checks/Tweets_Random_Sample_2020-18-05.xlsx", sheet = "CHTWEETS")
-#RS_DE_TWEE <- read_xlsx("./False_Positive_Checks/Manual_Checks/Tweets_Random_Sample_2020-18-05.xlsx", sheet = "DETWEETS")
+#RS_CH_TWEE <- read_xlsx("./TWEETS/Manual_Checks/Tweets_Random_Sample_2020-18-05.xlsx", sheet = "CHTWEETS")
+#RS_DE_TWEE <- read_xlsx("./TWEETS/Manual_Checks/Tweets_Random_Sample_2020-18-05.xlsx", sheet = "DETWEETS")
 
 # Update 13/02/2022: Version of Tweets_Random_Sample_2022-02-13.xlsx contains a classification of false-negatives
-RS_TWEE <- read_xlsx("./False_Positive_Checks/Manual_Checks/Tweets_Random_Sample_2022-02-13.xlsx", sheet = "TweetSample")
+RS_TWEE <- read_xlsx("./TWEETS/Manual_Checks/Tweets_Random_Sample_2022-02-13.xlsx", sheet = "TweetSample")
 
 
 #################
