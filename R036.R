@@ -971,26 +971,68 @@ ls()
 				se(m_mp_tenure)
 						
 				# country specific #
-				m_mp_tenure_country <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
-											age_cent +
-											tenure_cent +
-											(tenure_cent | country) +
-											(year_cent | country) +
-											(1 | pers_id)
-											,data=DT, family= binomial) #	,data=DT)
-				summary(m_mp_tenure_country)
-				anova(m_mp_tenure,m_mp_tenure_country) # NOT better
-				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,m_mp_tenure_country,type="text",intercept.bottom=FALSE)
+		#		m_mp_tenure_country <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+		#									age_cent +
+		#									tenure_cent +
+		#									(tenure_cent | country) +
+		#									(year_cent | country) +
+		#									(1 | pers_id)
+		#									,data=DT, family= binomial) #	,data=DT)
+		#		summary(m_mp_tenure_country)
+		#		anova(m_mp_tenure,m_mp_tenure_country) # NOT better
+		#		stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,m_mp_tenure_country,type="text",intercept.bottom=FALSE)
 	
 		# add a campaign season effect here at the MP/month level.
 		
+			# first merge in relevant parliament level information
+			nrow(DT)
+			DT <- sqldf("SELECT DT.*, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
+				  FROM DT LEFT JOIN PARL_RED
+				  ON (
+				  DT.timest >= PARL_RED.leg_period_start_asdate
+				  AND
+				  DT.timest <= PARL_RED.leg_period_end_asdate
+				  AND
+				  DT.country = PARL_RED.country_abb)
+				 ")
+			nrow(DT)
+			
+			# does not work for a reason I really do not understand, lets try a dplyr version
+			
+			DT <- DT %>%
+			  left_join(PARL_RED, by = c("timest" = "leg_period_start_asdate", "country" = "country_abb", "timest" = "leg_period_end_asdate")) %>%
+			  select(DT.*, parliament_id, leg_period_start_asdate, leg_period_end_asdate)
+			
+			
+			TWT <- sqldf("SELECT TWT.*, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
+				  FROM TWT LEFT JOIN PARL_RED
+				  ON
+				  TWT.timest >= PARL_RED.leg_period_start_asdate
+				  AND
+				  TWT.timest <= PARL_RED.leg_period_end_asdate
+				  AND
+				  TWT.country = PARL_RED.country_abb
+				 ")
+		
 			# variable generation taken from above
 			# number of months before the election - 
-			DT$NRMonthsBeforeElection <- round(as.numeric((DT$leg_period_end_asdate - DT$timest) /30),0) # taken from https://stackoverflow.com/questions/25369817/how-do-i-use-the-lubridate-package-to-calculate-the-number-of-months-between-two
-		
-			# and a dummy
-			TWT$campaign_season <- ifelse(TWT$NRMonthsBeforeElection <= 6,"yes","no")
-			TWT
+			DT$NRMonthsBeforeElection <- round(as.numeric((DT$leg_period_end_asdate - DT$timest) /30),0) 
+			
+			# and as the key dummy
+			DT$campaign_season <- ifelse(DT$NRMonthsBeforeElection <= 6,"yes","no")
+	
+		# add this to the model
+				m_mp_campaign_season  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+									age_cent +
+									tenure_cent +
+									campaign_season +
+									(year_cent | country) +
+									(1 | pers_id)
+									,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_campaign_season) # < this is the better model
+				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,m_mp_campaign_season,type="text",intercept.bottom=FALSE)
+				ranef(m_mp_campaign_season)
+				se(m_mp_campaign_season)
 	
 	
 		# intpretation of effect sizes e.t.c.
