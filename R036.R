@@ -1237,6 +1237,13 @@ ls()
 		DT <- TEMP
 
 		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 4 - DE mixed","cat 5 (lowest incentive)- DE closed list","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 (highest incentive) - DE dis and CH fptp"))
+		
+		# alternatively
+		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 5 (lowest incentive)- DE closed list","cat 4 - DE mixed","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 (highest incentive) - DE dis and CH fptp"))
+		
+		# or
+		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 1 (highest incentive) - DE dis and CH fptp","cat 2 - CH open list","cat 3 - CH open list NR and also SR cand","cat 4 - DE mixed","cat 5 (lowest incentive)- DE closed list"))
+		
 		table(DT$persvoteins)
 
 	# and the updated regression model
@@ -1297,8 +1304,50 @@ ls()
 		
 			# conclusion: no, not due to the drop here.
 		
-
+			# other correlations?
+			DT$campaign_season_num <- ifelse(DT$campaign_season == "yes",1,0)
+			str(DT)
+			cormat <- cor(DT[,c("year_cent","pers_loc","age_cent","tenure_cent","campaign_season_num")])
 			
+			library(corrplot)
+			corrplot(cormat, method = "color") # maybe some multi-collinearity with year?
+			
+			m_mp_persvotinc_mc  <- glmer(BinomialResponseMatrix~ #year_cent + # pers_loc~ year_cent +
+									age_cent +
+									tenure_cent +
+									campaign_season +
+									persvoteins +
+									(1 | country) +
+									(1 | pers_id)
+									,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_persvotinc_mc)
+				stargazer(m_mp_campaign_season,m_mp_persvotinc,m_mp_persvotinc_mc,type="text",intercept.bottom=FALSE)
+
+		# OK, lets just to prop.tabs for all variables
+			
+			# year_cent
+				DT$year_cent_binned <- cut(DT$year_cent, breaks = 2)
+				table(DT$year_cent_binned, DT$persvoteins)
+				prop.table(table(DT$year_cent_binned, DT$persvoteins),2)
+			
+			# pers_loc
+				DT$pers_loc_binned <- cut(DT$pers_loc, breaks = 5)
+				table(DT$pers_loc_binned, DT$persvoteins)
+				prop.table(table(DT$pers_loc_binned, DT$persvoteins),2)
+			
+			# age_cent
+				DT$age_binned <- cut(DT$age, breaks = 5)
+				table(DT$age_binned, DT$persvoteins)
+				prop.table(table(DT$age_binned, DT$persvoteins),2)
+			
+			# tenure_cent
+				DT$tenure_binned <- cut(DT$tenure, breaks = 5)
+				table(DT$tenure_binned, DT$persvoteins)
+				prop.table(table(DT$tenure_binned, DT$persvoteins),2)
+				
+			# campaign_season_num
+				table(DT$campaign_season_num, DT$persvoteins)
+				prop.table(table(DT$campaign_season_num, DT$persvoteins),2)
 		
 		# and with the interactions
 				m_mp_persvotinc_int  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
