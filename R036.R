@@ -1250,6 +1250,16 @@ ls()
 				summary(m_mp_persvotinc)
 				stargazer(m_mp_campaign_season,m_mp_persvotinc,type="text",intercept.bottom=FALSE)
 				
+		# interpret the effect size here, when candidacy type is controlled for!
+
+		# for the campaign season effect
+				fix3 <- fixef(m_mp_persvotinc)
+				fix3
+				
+				exp(fix3[1])/(1+exp(fix3[1]))*100 # so about 8.2% is the intercept (german mixed!)
+					
+				exp(fix3[1]+fix3[5])/(1+exp(fix3[1]+fix3[5]))*100 # so now 8.05%, so smaller effect?! - indeed, the sign flips! -- also for the main effects of the incentive to attract a personal vote, note how this is really not as expected, the expectation was: as the number get lower, the incentive to get a personal district vote increases..
+				
 		# and with the interactions
 				m_mp_persvotinc_int  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
 									age_cent +
@@ -1261,6 +1271,25 @@ ls()
 									,data=DT, family= binomial) #	,data=DT)
 				summary(m_mp_persvotinc_int)
 				stargazer(m_mp_campaign_season,m_mp_persvotinc,m_mp_persvotinc_int,type="text",intercept.bottom=FALSE)
+				
+				# none of the interaction effects are significant
+				
+		# what if we just do candidacy type?
+			table(DT$candidature_type)
+			DT$candidature_type <- factor(DT$candidature_type, levels=c("LD","L","D"))
+			table(DT$candidature_type)
+			
+			m_mp_cantype  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+									age_cent +
+									tenure_cent +
+									campaign_season *
+									candidature_type +
+									(year_cent | country) +
+									(1 | pers_id)
+									,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_cantype)
+				stargazer(m_mp_campaign_season,m_mp_persvotinc,m_mp_persvotinc_int,m_mp_cantype,type="text",intercept.bottom=FALSE)
+		
 		
 ###
 ## H2: Swiss and German MPs use more local cues when the electoral system offers incentives to cultivate a personal vote.
