@@ -722,8 +722,7 @@ ls()
 		  geom_rect(data=TWT, aes(xmin=leg_period_start_firstmonthday- months(6), xmax=leg_period_start_firstmonthday, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen")
 	
 	#### and a regression model
-	
-	
+
 		TWT$country <- factor(TWT$country,levels=c("DE","CH"))
 	
 	## empty model
@@ -954,8 +953,8 @@ ls()
 				head(DT)
 				
 				hist(DT$tenure)
-				mean(DT$tenure)
-				DT$tenure_cent <- scale(DT$tenure, center = TRUE, scale = FALSE)
+				meantenure <- mean(DT$tenure)
+				DT$tenure_cent <- DT$tenure - meantenure
 				hist(DT$tenure_cent)
 			
 				# general
@@ -986,7 +985,7 @@ ls()
 		
 			# first merge in relevant parliament level information
 			nrow(DT)
-			DT <- sqldf("SELECT DT.pers_id, DT.month, DT.tenure, DT.country, DT.total_nr_of_tweets, DT.nr_of_tweets_with_localque, DT.percentage_local_indvlevel, DT.pers_loc, DT.timest, DT.year, DT.year_cent, DT.age_cent, DT.tenure_cent, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
+			DT <- sqldf("SELECT DT.pers_id,DT.year_cent,DT.age_cent,DT.tenure_cent,DT.country,PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
 				  FROM DT LEFT JOIN PARL_RED
 				  ON (
 				  DT.timest >= PARL_RED.leg_period_start_asdate
@@ -995,6 +994,7 @@ ls()
 				  AND
 				  DT.country = PARL_RED.country_abb)
 				 ")
+		 
 			nrow(DT)
 			summary(DT$leg_period_start_asdate)
 		
@@ -1087,7 +1087,9 @@ ls()
 		head(ELENBU)
 		table(ELENBU$previous_parliament)
 		
+			names(DT)
 		
+
 		# step 2: merge in ELEN.candidature_type and ELEN.candidate_votes, new and improved version that combines candidature_type if there are different ones and sums the candidate votes
 			TEMP <- sqldf("SELECT DT.*, GROUP_CONCAT(ELENBU.candidature_type) as candidature_type, SUM(ELENBU.candidate_votes) as candidate_votes, ELENBU.list_id
 						FROM DT LEFT JOIN ELENBU
