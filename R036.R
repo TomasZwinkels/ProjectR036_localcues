@@ -1122,6 +1122,7 @@ ls()
 				# Germany LD concatination turned out not nessary as we already marked it with LD in ELEN
 				TEMP$candidature_type <- gsub("LD,LD", "LD", TEMP$candidature_type)
 				table(TEMP$candidature_type)
+				table(TEMP$candidature_type,TEMP$country)
 		
 		# step 4: use this info, together with some other bits to develop an ordinal 'incentive to cultivate a personal vote' scale as desribed by Oliver below.
 					# from the Overleaf doc:
@@ -1156,18 +1157,99 @@ ls()
 				
 				# in Appenzell-A-RH it is after 2003
 				TEMP$fptp <- ifelse((grepl("Appenzell-A-RH",TEMP$list_id) & TEMP$year > 2002),"fptp",TEMP$fptp)
-				table(TEMP$fptp) # this really is very little data to work with!
+				table(TEMP$fptp) # this really is very little data to work with! -- so, the swiss candidacy are just going to be merged together probably?
 			
 			# step 4.2 determine which Swiss MPs are also running for the Standerat
 				# ELLI has CH_NT-SR_1959 like entries in the parliament_id, this is not matched to a person yet, this pers_id is however in ELEN. Question now is, when do we say that you are 'running at the same time'? --> IN GENERAL?!, should all of this not be 'forward looking'? so for the upcomming election?!
+				# so, the thing to check for each pers_id is basically if they occur anywhere for that 'same election' in subsetted list of ELEN entries that are just running for the SR
 				
+				# make a reduced SR ELEN frame (only few!)
+				table(grepl("CH_NT-SR_",ELENBU$list_id))
+				
+				ELENBUSR <- ELENBU[which(grepl("CH_NT-SR_",ELENBU$list_id)),]
+				head(ELENBUSR$pers_id)
+				
+				# variable if ran as SR >> at any point in time <<-- could be sharpened later after having a 'when is it the same election' discussion.
+				table(TEMP$pers_id %in% ELENBUSR$pers_id)
+				TEMP$SRcan <- ifelse(TEMP$pers_id %in% ELENBUSR$pers_id,"ran for SR at some point","did not run for SR at some point")
+				table(TEMP$SRcan)
+
+	# step 5: put it al together
+		
+		# default is NA
+		TEMP$persvoteins <- NA
+		
+		# cat 1 - DEU: pure district candidate & CHE FPTP
+		TEMP$persvoteins <- ifelse((TEMP$candidature_type == "D"|TEMP$fptp == "fptp"),"cat 1 - DE dis and CH fptp",TEMP$persvoteins)
+		table(TEMP$persvoteins)
+		
+		# cat 2 - CHE: open-list candidate for the National Council
+		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & !(TEMP$fptp == "fptp")),"cat 2 - CH open list",TEMP$persvoteins)
+		table(TEMP$persvoteins)
+		
+		# cat 3 - CHE open-list candidate for the National Council and has also been at some point first-past-the-post candidate for the Council of States
+		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & TEMP$SRcan == "ran for SR at some point"),"cat 3 - CH open list NR and also SR cand",TEMP$persvoteins)
+		table(TEMP$persvoteins)
+		
+		# cat 4 - DEU: mixed candidates
+		TEMP$persvoteins <- ifelse((TEMP$country == "DE" & TEMP$candidature_type == "LD"),"cat 4 - DE mixed",TEMP$persvoteins)
+		table(TEMP$persvoteins)
+		
+		# cat 5 - DEU: (closed) list candidate
+		TEMP$persvoteins <- ifelse((TEMP$country == "DE" & TEMP$candidature_type == "L"),"cat 5 - DE closed list",TEMP$persvoteins)
+		table(TEMP$persvoteins)
+		
+		# any NA left?
+		table(is.na(TEMP$persvoteins)) # yes, about 3600 -- looks like these are all probalby recent cases where the candidature_type cannot be detirmed iun the upcomming elections yet
+			# inspect
+			NASLEFT <- TEMP[which(is.na(TEMP$persvoteins)),]
+			head(NASLEFT)
+		summary(NASLEFT$timest)
+		summary(TEMP$timest)
+		
+		
+	# add this to the model!
+		nrow(DT)
+		nrow(TEMP)
+		names(DT)
+		names(TEMP)
+		names(TEMP) %in% names(DT)
+		
+		DT <- TEMP
+
+		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 4 - DE mixed","cat 5 - DE closed list","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 - DE dis and CH fptp"))
+		table(DT$persvoteins)
+
 	
+	# and the updated regression model
+				m_mp_persvotinc  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+									age_cent +
+									tenure_cent +
+									campaign_season +
+									persvoteins +
+									(year_cent | country) +
+									(1 | pers_id)
+									,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_persvotinc)
+				stargazer(m_mp_campaign_season,m_mp_persvotinc,type="text",intercept.bottom=FALSE)
+				
+		# and with the interactions
+				m_mp_persvotinc_int  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+									age_cent +
+									tenure_cent +
+									campaign_season *
+									persvoteins +
+									(year_cent | country) +
+									(1 | pers_id)
+									,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_persvotinc_int)
+				stargazer(m_mp_campaign_season,m_mp_persvotinc,m_mp_persvotinc_int,type="text",intercept.bottom=FALSE)
+		
 ###
 ## H2: Swiss and German MPs use more local cues when the electoral system offers incentives to cultivate a personal vote.
 ###	
 
  # see country comparisons above!
- 
 	aggregate(TWT$pers_loc~TWT$country,data=TWT,mean) # percentage is much higher in Germany then in Switserland
 
 # candidacy type
