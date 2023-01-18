@@ -1152,7 +1152,7 @@ ls()
 						")
 		head(TWT2)
 		tail(TWT2)
-		nrow(TWT2)
+		nrow(TWT2) # 456 cases is the same number as in the current version of the manuscript.
 		
 		TWT2$timest <- as.POSIXct(TWT2$timest)
 		TWT2$leg_period_start_asdate <- as.POSIXct(TWT2$leg_period_start_asdate)
@@ -1171,6 +1171,18 @@ ls()
 				# german mixed candidacies [[2]]
 				# german disctrict candidacies [[3]]
 				# swiss candidacies [[4]]
+				
+				
+		# from the Overleaf doc:
+		
+#		2022-11-30, note by Oliver for Tomas: For the different electoral contexts, I suggest a hierarchy  of candidacies that encompasses both Germany and Switzerland. As our focus is on members (candidates) of the Bundestag and members of the Swiss National Council (lower house), there are several options of how candidacies can be combined. The numbering suggests how strongly MPs should be motivated to cultivate a personal vote:
+#		1) DEU: district candidate (first-past-the-post. Has a very high incentive to cultivate a personal vote)
+#   also 1) CHE: first-past-the-post candidate for the National Council (has a very strong incentive to attract personal votes from both voters of their own party and voters of other parties because unlike in the open-list context, other candidates do not help the list get more party votes). Only features in cantons with only one seat.
+#		2) CHE: open-list candidate for the National Council (has the incentive to garner personal votes from both voters of their own party and voters of other parties. Less so than those only running as first-past-the-post candidates because with a list, your co-candidates also help.)
+#		3) CHE: open-list candidate for the National Council and first-past-the-post candidate for the Council of States (Upper House) (in both contexts, the incentive to cultivate a personal vote exists, but it is more relaxed than only being a National Council candidate because also running for the Upper House increases your visibility)
+#		4) DEU: mixed candidates (seeks first-past-the-post election but can also be elected via the party list. Has therefore a lower incentive to signal localness than a pure district candidate)
+#		5) DEU: (closed) list candidate (almost no incentive to cultivate a personal vote because voters cannot reward the candidate for geographic represenation, only the party...)
+#       Other note from Oliver: I don't think the combination of running for both the Lower House in a first-past-the-post system and the Upper House (also first-past-the-post system) in Switzerland occurs. So that option is not included in the list above.
 	
 	####	
 	# take the regression models from above!
