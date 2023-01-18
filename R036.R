@@ -1066,6 +1066,102 @@ ls()
 
 			plot_model(m_mp_tenure)
 	
+	# OK, and lets add our new fancy candidacy type / incentive to cultivate a personal vote variables
+	
+		# step 1: get an ELEN with a parliament ID in it
+		
+		ELENBU <- sqldf("SELECT ELEN.*, ELLI.parliament_id
+						 FROM ELEN LEFT JOIN ELLI
+						 ON
+						 ELEN.list_id = ELLI.list_id
+						")
+		head(ELENBU)
+		
+		# crucially, for current state / campaign season, what matters is the candicacy type at the upcomming election! so, say for say a date in 2012, what matters is the candicacy type for the 2013 election, this means that ELENBU info needs to be matched on the previous parliament.
+		ELENBU <- sqldf("SELECT ELENBU.*, PARL.previous_parliament
+						 FROM ELENBU LEFT JOIN PARL
+						 ON
+						 ELENBU.parliament_id = PARL.parliament_id
+
+						")
+		head(ELENBU)
+		table(ELENBU$previous_parliament)
+		
+		
+		# step 2: merge in ELEN.candidature_type and ELEN.candidate_votes, new and improved version that combines candidature_type if there are different ones and sums the candidate votes
+			TEMP <- sqldf("SELECT DT.*, GROUP_CONCAT(ELENBU.candidature_type) as candidature_type, SUM(ELENBU.candidate_votes) as candidate_votes, ELENBU.list_id
+						FROM DT LEFT JOIN ELENBU
+						ON 
+						DT.pers_id = ELENBU.pers_id
+						AND
+						DT.parliament_id = ELENBU.previous_parliament
+						GROUP BY DT.pers_id, DT.month
+					 ")
+		nrow(DT)
+		nrow(TEMP)
+		head(TEMP)
+		tail(TEMP)
+		
+		# note that quite a lot of cases are lost here, as info for the Swiss 2019 election is not in ELEN?
+		
+		table(TEMP$candidature_type)
+		summary(TEMP$candidate_votes)
+		
+		# step 3: clean up the candidature_type variable
+		
+			# so, note that all the CH data here by default does not have a candidature_type defined, this type is however just list.
+			
+				# first check if this indeed the structure?
+				table(TEMP$candidature_type,TEMP$country) # yes it is
+		
+				# set all swiss cases to candidature_type : list
+				table(TEMP$candidature_type)
+				TEMP$candidature_type <- ifelse(TEMP$country == "CH","L",TEMP$candidature_type)
+				table(TEMP$candidature_type)
+				
+				# Germany LD concatination turned out not nessary as we already marked it with LD in ELEN
+				TEMP$candidature_type <- gsub("LD,LD", "LD", TEMP$candidature_type)
+				table(TEMP$candidature_type)
+		
+		# step 4: use this info, together with some other bits to develop an ordinal 'incentive to cultivate a personal vote' scale as desribed by Oliver below.
+					# from the Overleaf doc:
+					
+			#		2022-11-30, note by Oliver for Tomas: For the different electoral contexts, I suggest a hierarchy  of candidacies that encompasses both Germany and Switzerland. As our focus is on members (candidates) of the Bundestag and members of the Swiss National Council (lower house), there are several options of how candidacies can be combined. The numbering suggests how strongly MPs should be motivated to cultivate a personal vote:
+			#		1) DEU: district candidate (first-past-the-post. Has a very high incentive to cultivate a personal vote)
+			#   also 1) CHE: first-past-the-post candidate for the National Council (has a very strong incentive to attract personal votes from both voters of their own party and voters of other parties because unlike in the open-list context, other candidates do not help the list get more party votes). Only features in cantons with only one seat.
+			#		2) CHE: open-list candidate for the National Council (has the incentive to garner personal votes from both voters of their own party and voters of other parties. Less so than those only running as first-past-the-post candidates because with a list, your co-candidates also help.)
+			#		3) CHE: open-list candidate for the National Council and first-past-the-post candidate for the Council of States (Upper House) (in both contexts, the incentive to cultivate a personal vote exists, but it is more relaxed than only being a National Council candidate because also running for the Upper House increases your visibility)
+			#		4) DEU: mixed candidates (seeks first-past-the-post election but can also be elected via the party list. Has therefore a lower incentive to signal localness than a pure district candidate)
+			#		5) DEU: (closed) list candidate (almost no incentive to cultivate a personal vote because voters cannot reward the candidate for geographic represenation, only the party...)
+			#       Other note from Oliver: I don't think the combination of running for both the Lower House in a first-past-the-post system and the Upper House (also first-past-the-post system) in Switzerland occurs. So that option is not included in the list above.
+
+			# step 4.1 for CH candidates, lets see if they where first-past-the-post candidates
+				# this depends on the district magnitude, which we have in ELDI? (do we?) > unfortionately WE DO NOT
+				
+				# OK, this I am just going to do manually for now, using this source:
+					# https://de.wikipedia.org/wiki/Liste_der_Schweizer_Nationalratswahlkreise#Proporzwahlkreise_(ab_1919)
+				
+				# default is no information
+				TEMP$fptp <- "regular"
+				table(TEMP$fptp)
+				
+				# if the districts are Uri, Obwalden, Nidwalden and Appenzell-I-RH this is always a FPTP situation
+				head(TEMP)
+				TEMP$fptp <- ifelse(grepl("Uri|Obwalden|Nidwalden|Appenzell-I-RH",TEMP$list_id),"fptp",TEMP$fptp) # OK, so I check this and this work, but I think the people in these district simply did not have twitter accounts!
+				table(TEMP$fptp)
+				
+				# in Glarus it is after 1971
+				TEMP$fptp <- ifelse((grepl("Glarus",TEMP$list_id) & TEMP$year > 1970),"fptp",TEMP$fptp)
+				table(TEMP$fptp)
+				
+				# in Appenzell-A-RH it is after 2003
+				TEMP$fptp <- ifelse((grepl("Appenzell-A-RH",TEMP$list_id) & TEMP$year > 2002),"fptp",TEMP$fptp)
+				table(TEMP$fptp) # this really is very little data to work with!
+			
+			# step 4.2 determine which Swiss MPs are also running for the Standerat
+				# ELLI has CH_NT-SR_1959 like entries in the parliament_id, this is not matched to a person yet, this pers_id is however in ELEN. Question now is, when do we say that you are 'running at the same time'? --> IN GENERAL?!, should all of this not be 'forward looking'? so for the upcomming election?!
+				
+	
 ###
 ## H2: Swiss and German MPs use more local cues when the electoral system offers incentives to cultivate a personal vote.
 ###	
