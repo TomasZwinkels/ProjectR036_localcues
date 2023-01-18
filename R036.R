@@ -1021,6 +1021,8 @@ ls()
 				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,m_mp_campaign_season,type="text",intercept.bottom=FALSE)
 			#	ranef(m_mp_campaign_season)
 			#	se(m_mp_campaign_season)
+			
+				# note how the campaign season effect is negative here already?!
 	
 	
 		# intpretation of effect sizes e.t.c.
@@ -1051,7 +1053,7 @@ ls()
 					 hist(DT$percentage_local_indvlevel)
 				     hist(TWT$pers_loc)
 					
-				exp(fix2[1]+fix2[5])/(1+exp(fix2[1]+fix2[5]))*100 # so would be about 7%, this increase is very simular to the one that came out of the country/month level analysis.
+				exp(fix2[1]+fix2[5])/(1+exp(fix2[1]+fix2[5]))*100 # so would be about 6.9%, so quite an effect, relatively at least.
 	
 		
 
@@ -1197,11 +1199,11 @@ ls()
 		TEMP$persvoteins <- NA
 		
 		# cat 1 - DEU: pure district candidate & CHE FPTP
-		TEMP$persvoteins <- ifelse((TEMP$candidature_type == "D"|TEMP$fptp == "fptp"),"cat 1 - DE dis and CH fptp",TEMP$persvoteins)
+		TEMP$persvoteins <- ifelse((TEMP$candidature_type == "D"|TEMP$fptp == "fptp"),"cat 1 (highest incentive) - DE dis and CH fptp",TEMP$persvoteins)
 		table(TEMP$persvoteins)
 		
 		# cat 2 - CHE: open-list candidate for the National Council
-		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & !(TEMP$fptp == "fptp")),"cat 2 - CH open list",TEMP$persvoteins)
+		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & !(TEMP$fptp == "fptp")),"cat 2 - CH open list",TEMP$persvoteins) # so note that this is where the candidacy type for all swiss cases is filled in, this is not actually 100% correct, there are false negatives in fptp and SRcan
 		table(TEMP$persvoteins)
 		
 		# cat 3 - CHE open-list candidate for the National Council and has also been at some point first-past-the-post candidate for the Council of States
@@ -1213,7 +1215,7 @@ ls()
 		table(TEMP$persvoteins)
 		
 		# cat 5 - DEU: (closed) list candidate
-		TEMP$persvoteins <- ifelse((TEMP$country == "DE" & TEMP$candidature_type == "L"),"cat 5 - DE closed list",TEMP$persvoteins)
+		TEMP$persvoteins <- ifelse((TEMP$country == "DE" & TEMP$candidature_type == "L"),"cat 5 (lowest incentive)- DE closed list",TEMP$persvoteins)
 		table(TEMP$persvoteins)
 		
 		# any NA left?
@@ -1234,10 +1236,9 @@ ls()
 		
 		DT <- TEMP
 
-		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 4 - DE mixed","cat 5 - DE closed list","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 - DE dis and CH fptp"))
+		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 4 - DE mixed","cat 5 (lowest incentive)- DE closed list","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 (highest incentive) - DE dis and CH fptp"))
 		table(DT$persvoteins)
 
-	
 	# and the updated regression model
 				m_mp_persvotinc  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
 									age_cent +
@@ -1256,10 +1257,49 @@ ls()
 				fix3 <- fixef(m_mp_persvotinc)
 				fix3
 				
+				# here
 				exp(fix3[1])/(1+exp(fix3[1]))*100 # so about 8.2% is the intercept (german mixed!)
 					
 				exp(fix3[1]+fix3[5])/(1+exp(fix3[1]+fix3[5]))*100 # so now 8.05%, so smaller effect?! - indeed, the sign flips! -- also for the main effects of the incentive to attract a personal vote, note how this is really not as expected, the expectation was: as the number get lower, the incentive to get a personal district vote increases..
-				
+		
+				# this was
+				fix2
+				exp(fix2[1])/(1+exp(fix2[1]))*100 # so about 8.2% is the intercept (german mixed!)
+					
+				exp(fix2[1]+fix2[5])/(1+exp(fix2[1]+fix2[5]))*100
+		
+		# how can we understand this?
+			table(DT$campaign_season,DT$persvoteins)
+			prop.table(table(DT$campaign_season, DT$persvoteins), 2) # OK, so the missing data in cat 3 indeed stands out here, but otherwise no clear relation, one would indeed also not expect that.
+		
+		# how much of this is due to the drop in data?
+			DT_RED <- DT[which(!is.na(DT$persvoteins)),]
+			nrow(DT_RED)
+			
+			table(DT$country) 
+			table(DT_RED$country) # OK, so actual all the dropped cases are in Germany, does that make sense?
+		
+			# need an updated BinomialResponseMatrix for this as well ofcourse
+			nrofsuccesRED <- DT_RED$nr_of_tweets_with_localque
+			nrpffailuresRED <- DT_RED$total_nr_of_tweets - DT_RED$nr_of_tweets_with_localque
+			BinomialResponseMatrixRED <- as.matrix(cbind(nrofsuccesRED,nrpffailuresRED))
+			head(BinomialResponseMatrixRED)
+		
+			m_mp_campaign_season_red  <- glmer(BinomialResponseMatrixRED~ year_cent + # pers_loc~ year_cent +
+									age_cent +
+									tenure_cent +
+									campaign_season +
+									(year_cent | country) +
+									(1 | pers_id)
+									,data=DT_RED, family= binomial) #	,data=DT)
+				summary(m_mp_campaign_season_red)
+				stargazer(m_mp_campaign_season,m_mp_campaign_season_red,m_mp_persvotinc,type="text",intercept.bottom=FALSE)
+		
+			# conclusion: no, not due to the drop here.
+		
+
+			
+		
 		# and with the interactions
 				m_mp_persvotinc_int  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
 									age_cent +
