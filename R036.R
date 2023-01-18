@@ -986,7 +986,7 @@ ls()
 		
 			# first merge in relevant parliament level information
 			nrow(DT)
-			DT <- sqldf("SELECT DT.pers_id, DT.month, DT.tenure, DT.country, DT.total_nr_of_tweets, DT.nr_of_tweets_with_localque, DT.percentage_local_indvlevel, DT.pers_loc, DT.timest, DT.year, DT.year_cent, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
+			DT <- sqldf("SELECT DT.pers_id, DT.month, DT.tenure, DT.country, DT.total_nr_of_tweets, DT.nr_of_tweets_with_localque, DT.percentage_local_indvlevel, DT.pers_loc, DT.timest, DT.year, DT.year_cent, DT.age_cent, DT.tenure_cent, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
 				  FROM DT LEFT JOIN PARL_RED
 				  ON (
 				  DT.timest >= PARL_RED.leg_period_start_asdate
