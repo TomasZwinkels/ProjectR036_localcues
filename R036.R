@@ -985,7 +985,7 @@ ls()
 		
 			# first merge in relevant parliament level information
 			nrow(DT)
-			DT <- sqldf("SELECT DT.pers_id,DT.year_cent,DT.age_cent,DT.tenure_cent,DT.country,PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
+			DT <- sqldf("SELECT DT.*,PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
 				  FROM DT LEFT JOIN PARL_RED
 				  ON (
 				  DT.timest >= PARL_RED.leg_period_start_asdate
@@ -1104,7 +1104,7 @@ ls()
 		head(TEMP)
 		tail(TEMP)
 		
-		# note that quite a lot of cases are lost here, as info for the Swiss 2019 election is not in ELEN?
+		# note that quite a lot of cases are lost here, as info for the Swiss 2019 election and the German 2021 election are not in ELEN # Oliver thinks I might be able to get this from a file he shared called 'su-d-17.02.03.02', I am not actually sure, that is just SR elections info, not if the district magnitude is 1, we also need to know what districts people ran in again
 		
 		table(TEMP$candidature_type)
 		summary(TEMP$candidate_votes)
@@ -1171,10 +1171,25 @@ ls()
 				ELENBUSR <- ELENBU[which(grepl("CH_NT-SR_",ELENBU$list_id)),]
 				head(ELENBUSR$pers_id)
 				
-				# variable if ran as SR >> at any point in time <<-- could be sharpened later after having a 'when is it the same election' discussion.
-				table(TEMP$pers_id %in% ELENBUSR$pers_id)
-				TEMP$SRcan <- ifelse(TEMP$pers_id %in% ELENBUSR$pers_id,"ran for SR at some point","did not run for SR at some point")
-				table(TEMP$SRcan)
+				# variable if ran as SR >> at any point in time <<-- could be sharpened later after having a 'when is it the same election' discussion: so the answer here is, there also needs to be a date match!
+				
+					# so, we need a pers_id and year match, so lets just make a var in both dataframes to do so
+					TEMP$pers_id_year <- paste0(TEMP$pers_id,"_",TEMP$year)
+					head(TEMP)
+					
+					ELENBUSR$year <- substrRight(ELENBUSR$parliament_id,4)
+					head(ELENBUSR)
+					ELENBUSR$pers_id_year <-  paste0(ELENBUSR$pers_id,"_",ELENBUSR$year)
+					head(ELENBUSR)
+				
+					table(TEMP$pers_id %in% ELENBUSR$pers_id)
+					TEMP$SRcan <- ifelse(TEMP$pers_id_year %in% ELENBUSR$pers_id_year,"ran for SR in same year","did not run for SR in same year")
+					table(TEMP$SRcan)
+				
+				# old BELOW
+				#table(TEMP$pers_id %in% ELENBUSR$pers_id)
+				#TEMP$SRcan <- ifelse(TEMP$pers_id %in% ELENBUSR$pers_id,"ran for SR at some point","did not run for SR at some point")
+				#table(TEMP$SRcan)
 
 	# step 5: put it al together
 		
@@ -1190,7 +1205,7 @@ ls()
 		table(TEMP$persvoteins)
 		
 		# cat 3 - CHE open-list candidate for the National Council and has also been at some point first-past-the-post candidate for the Council of States
-		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & TEMP$SRcan == "ran for SR at some point"),"cat 3 - CH open list NR and also SR cand",TEMP$persvoteins)
+		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & TEMP$SRcan == "ran for SR in same year"),"cat 3 - CH open list NR and also SR cand",TEMP$persvoteins)
 		table(TEMP$persvoteins)
 		
 		# cat 4 - DEU: mixed candidates
