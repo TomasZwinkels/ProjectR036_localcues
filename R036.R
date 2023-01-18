@@ -1017,7 +1017,7 @@ ls()
 									(year_cent | country) +
 									(1 | pers_id)
 									,data=DT, family= binomial) #	,data=DT)
-				summary(m_mp_campaign_season) # < this is the better model
+				summary(m_mp_campaign_season)
 				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,m_mp_campaign_season,type="text",intercept.bottom=FALSE)
 			#	ranef(m_mp_campaign_season)
 			#	se(m_mp_campaign_season)
@@ -1045,10 +1045,15 @@ ls()
 				fix2 <- fixef(m_mp_campaign_season)
 				fix2
 				
-				exp(fix2[1])/(1+exp(fix2[1]))*100 # so about 5.5% indeed?
-				
+				exp(fix2[1])/(1+exp(fix2[1]))*100 # so about 5.5% indeed? -- was around 8.6% on the country level.. do I understand that? info lost in averaging? influential observations on those means?
+		
+				# inspection that might inform this 'influential obs interpretation': indeed some suggestion that that is exactly what is happening!
+					 hist(DT$percentage_local_indvlevel)
+				     hist(TWT$pers_loc)
+					
 				exp(fix2[1]+fix2[5])/(1+exp(fix2[1]+fix2[5]))*100 # so would be about 7%, this increase is very simular to the one that came out of the country/month level analysis.
 	
+		
 
 		# some simple (partially) copy/paste able stargazer output - RANDOM SLOPES NEED TO BE DONE MANUALLU!
 		
@@ -1086,19 +1091,25 @@ ls()
 		DT <- DT[which(!is.na(DT$total_nr_of_tweets)),]
 		nrow(DT)
 		
-		DT$timest <- as.POSIXct(paste(DT$month,"-01 00:00",sep=""))
-		DT <- sqldf("SELECT DT.*, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
-					  FROM DT LEFT JOIN PARL_RED
-					  ON
-					  DT.timest >= PARL_RED.leg_period_start_asdate
-					  AND
-					  DT.timest <= PARL_RED.leg_period_end_asdate
-					  AND
-					  DT.country = PARL_RED.country_abb
-					 ")
-		head(DT)
-		tail(DT)
-		nrow(DT)
+	#	DT$timest <- as.POSIXct(paste(DT$month,"-01 00:00",sep=""))
+		
+	#	names(DT)
+		
+		# I think all of this was already done above now!
+	#	DT <- sqldf("SELECT DT.pers_id, DT.month, DT.tenure, DT.country, DT.total_nr_of_tweets, DT.nr_of_tweets_with_localque, DT.percentage_local_indvlevel, DT.pers_loc, DT.timest, DT.year, DT.yearcent, DT.parliament_id, DT.leg_period_start_asdate, DT.leg_period_end_asdate, DT.NRMonthsBeforeElection, DT.campaign_season, DT.age, DT.agecent, DT.tenurecent, PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
+	#				  FROM DT LEFT JOIN PARL_RED
+	#				  ON
+	#				  DT.timest >= PARL_RED.leg_period_start_asdate
+	#				  AND
+	#				  DT.timest <= PARL_RED.leg_period_end_asdate
+	#				  AND
+	#				  DT.country = PARL_RED.country_abb
+	#				 ")
+		
+		
+	#	head(DT)
+	#	tail(DT)
+	#	nrow(DT)
 		
 		table(is.na(DT$parliament_id))
 		# DT[which(is.na(DT$parliament_id)),] # not cases we are using!
@@ -1115,7 +1126,7 @@ ls()
 		
 					 ")
 		nrow(TEMP)
-		#fix later > note that for German MP with double candidatures I now double the observations!
+		#fix later > note that for German MP with double candidatures I now double the observations! > or is this a feature?
 		head(TEMP)
 		
 		# set all swiss cases to candidature_type : list
@@ -1129,7 +1140,7 @@ ls()
 		
 	# plot
 	
-		# aggregate
+		# aggregate (OK, but lets aggregate this to the MP level?!)
 		TWT2 <- sqldf("SELECT month, country, candidature_type, 
 					   SUM(total_nr_of_tweets) as 'total_sum', 
 					   SUM(nr_of_tweets_with_localque) as 'lq_sum', 
