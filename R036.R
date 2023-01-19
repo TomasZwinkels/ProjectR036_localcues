@@ -985,7 +985,7 @@ ls()
 		
 			# first merge in relevant parliament level information
 			nrow(DT)
-			DT <- sqldf("SELECT DT.*,PARL_RED.parliament_id, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
+			DT <- sqldf("SELECT DT.*,PARL_RED.parliament_id,PARL_RED.next_parliament, PARL_RED.leg_period_start_asdate, PARL_RED.leg_period_end_asdate
 				  FROM DT LEFT JOIN PARL_RED
 				  ON (
 				  DT.timest >= PARL_RED.leg_period_start_asdate
@@ -1008,13 +1008,88 @@ ls()
 			DT$campaign_season <- ifelse(DT$NRMonthsBeforeElection <= 6,"yes","no")
 			table(DT$campaign_season)
 			table(is.na(DT$campaign_season))
+			
+			# finding the issue mentioned below!
+			DT_LAST <- DT[which(DT$year == 2019),]
+			nrow(DT_LAST)
+			head(DT_LAST)
+			
+			# OK, so crucially, we need the election dates, not the legistaltive period end dates.
+			
+				# let's do this manually
+				
+					# default is emptu
+					
+						DT$date_of_next_election <- NA
+				
+					# for DE
+					
+						table(DT$parliament_id)
+						
+						# DE_NT-BT_2005 - so next parliament is DE_NT-BT_2009, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2005")] <- as.POSIXct("27sep2009",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# DE_NT-BT_2009 - 27 September 2009 - so next parliament is DE_NT-BT_2013, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2009")] <- as.POSIXct("22sep2013",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# DE_NT-BT_2013 -  22 September 2013 - so next parliament is DE_NT-DE_NT-BT_2017, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2013")] <- as.POSIXct("24sep2017",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# DE_NT-BT_2017 - 24 September 2017 - so next parliament is DE_NT-BT_2011, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2017")] <- as.POSIXct("26sep2021",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# DE_NT-BT_2017 - 26 September 2021
+
+					
+					
+					# for CH
+		
+						# CH_NT-NR_2011 - 23 October 2011 - so next parliament is CH_NT-NR_2011 , see date below
+						DT$date_of_next_election[which(DT$parliament_id == "CH_NT-NR_2011")] <- as.POSIXct("18oct2015",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# CH_NT-NR_2015 - 18 October 2015 - so next parliament is CH_NT-NR_2015, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "CH_NT-NR_2015")] <- as.POSIXct("20oct2019",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# CH_NT-NR_2019 - 20 October 2019 - so next parliament is CH_NT-NR_2023, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "CH_NT-NR_2019")] <- as.POSIXct("22oct2023",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# CH_NT-NR_2023 - 22 October 2023
+			
+			
+			
+			
+			
+			#
+			# OK, and a visual like the one above but on the MP/month level
+			#
+		
+			ggplot(data = DT, aes(x = timest, y = pers_loc,colour=campaign_season)) +
+			geom_point() +
+			geom_jitter() +
+			geom_smooth() +
+			facet_grid(country ~ .) +
+			scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
+			geom_rect(data=DT, aes(xmin=leg_period_start_asdate- months(6), xmax=leg_period_start_asdate, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") 
+			# hey! there is an issue with the construction of the campaign season for here! last 6 months of observation period are erroniously classified as campaign season?!
+
+
+						
+	
+						
 	
 		# add this to the model
 				m_mp_campaign_season  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
 									age_cent +
 									tenure_cent +
 									campaign_season +
-									(year_cent | country) +
+									(1 | country) + # (year_cent | country) +
 									(1 | pers_id)
 									,data=DT, family= binomial) #	,data=DT)
 				summary(m_mp_campaign_season)
@@ -1055,7 +1130,31 @@ ls()
 					
 				exp(fix2[1]+fix2[5])/(1+exp(fix2[1]+fix2[5]))*100 # so would be about 6.9%, so quite an effect, relatively at least.
 	
+		# OK, and what if we add a fixed effect for country?
+			m_mp_campaign_season_count  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+									age_cent +
+									tenure_cent +
+									campaign_season +
+									(1 | country) +
+									(1 | pers_id)
+									,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_campaign_season_count)
 		
+		# OK, so we are zooming in on this, campaign season only has an effect when we model a country specific time-trend?
+				m_mp_campaign_season_countfix  <- glmer(BinomialResponseMatrix~ #year_cent + # pers_loc~ year_cent +
+								#	age_cent +
+								#	tenure_cent +
+									campaign_season +
+								#	country +
+									(1 | pers_id)
+									,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_campaign_season_countfix)
+				
+				# even the 'clean' non-controlled effect is already negative, so this really seems to be an artifact, still the question remains: how is this different from what the graphs suggest?
+				
+			table(DT$campaign_season,DT$country)
+			prop.table(table(DT$campaign_season,DT$country),2)
+	
 
 		# some simple (partially) copy/paste able stargazer output - RANDOM SLOPES NEED TO BE DONE MANUALLU!
 		
@@ -1239,10 +1338,10 @@ ls()
 		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 4 - DE mixed","cat 5 (lowest incentive)- DE closed list","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 (highest incentive) - DE dis and CH fptp"))
 		
 		# alternatively
-		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 5 (lowest incentive)- DE closed list","cat 4 - DE mixed","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 (highest incentive) - DE dis and CH fptp"))
+	#	DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 5 (lowest incentive)- DE closed list","cat 4 - DE mixed","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 (highest incentive) - DE dis and CH fptp"))
 		
 		# or
-		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 1 (highest incentive) - DE dis and CH fptp","cat 2 - CH open list","cat 3 - CH open list NR and also SR cand","cat 4 - DE mixed","cat 5 (lowest incentive)- DE closed list"))
+	#	DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 1 (highest incentive) - DE dis and CH fptp","cat 2 - CH open list","cat 3 - CH open list NR and also SR cand","cat 4 - DE mixed","cat 5 (lowest incentive)- DE closed list"))
 		
 		table(DT$persvoteins)
 
@@ -1252,7 +1351,8 @@ ls()
 									tenure_cent +
 									campaign_season +
 									persvoteins +
-									(year_cent | country) +
+									country +
+									(1 | country) + # (year_cent | country) +
 									(1 | pers_id)
 									,data=DT, family= binomial) #	,data=DT)
 				summary(m_mp_persvotinc)
@@ -1283,6 +1383,11 @@ ls()
 			DT_RED <- DT[which(!is.na(DT$persvoteins)),]
 			nrow(DT_RED)
 			
+			DT_DROPPED <- DT[which(is.na(DT$persvoteins)),]
+			nrow(DT_DROPPED)
+			mean(DT$pers_loc)
+			mean(DT_DROPPED$pers_loc) # so yes indeed, dropped case all have relatively low percentage of local cues
+			
 			table(DT$country) 
 			table(DT_RED$country) # OK, so actual all the dropped cases are in Germany, does that make sense?
 		
@@ -1296,13 +1401,14 @@ ls()
 									age_cent +
 									tenure_cent +
 									campaign_season +
-									(year_cent | country) +
+									country +
+									(1 | country) + # (year_cent | country) +
 									(1 | pers_id)
 									,data=DT_RED, family= binomial) #	,data=DT)
 				summary(m_mp_campaign_season_red)
 				stargazer(m_mp_campaign_season,m_mp_campaign_season_red,m_mp_persvotinc,type="text",intercept.bottom=FALSE)
 		
-			# conclusion: no, not due to the drop here.
+			# conclusion: something odd is going on here! Now there is a positive effect here?!
 		
 			# other correlations?
 			DT$campaign_season_num <- ifelse(DT$campaign_season == "yes",1,0)
@@ -1312,18 +1418,19 @@ ls()
 			library(corrplot)
 			corrplot(cormat, method = "color") # maybe some multi-collinearity with year?
 			
-			m_mp_persvotinc_mc  <- glmer(BinomialResponseMatrix~ #year_cent + # pers_loc~ year_cent +
+			m_mp_persvotinc_mc  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
 									age_cent +
 									tenure_cent +
 									campaign_season +
+									country +
 									persvoteins +
-									(1 | country) +
+								#	(1 | country) + # (year_cent | country) + # does not really add anything anymore when country is in as a fixed effect.
 									(1 | pers_id)
 									,data=DT, family= binomial) #	,data=DT)
 				summary(m_mp_persvotinc_mc)
 				stargazer(m_mp_campaign_season,m_mp_persvotinc,m_mp_persvotinc_mc,type="text",intercept.bottom=FALSE)
 
-		# OK, lets just to prop.tabs for all variables
+		# OK, lets just to prop.tabs for all variables -- still no idea.
 			
 			# year_cent
 				DT$year_cent_binned <- cut(DT$year_cent, breaks = 2)
@@ -1350,16 +1457,18 @@ ls()
 				prop.table(table(DT$campaign_season_num, DT$persvoteins),2)
 		
 		# and with the interactions
-				m_mp_persvotinc_int  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+				m_mp_int  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
 									age_cent +
 									tenure_cent +
 									campaign_season *
 									persvoteins +
-									(year_cent | country) +
+									country +
+								#	(1 | country) + # (year_cent | country) +
 									(1 | pers_id)
 									,data=DT, family= binomial) #	,data=DT)
-				summary(m_mp_persvotinc_int)
-				stargazer(m_mp_campaign_season,m_mp_persvotinc,m_mp_persvotinc_int,type="text",intercept.bottom=FALSE)
+				summary(m_mp_int)
+				stargazer(m_mp_campaign_season,m_mp_persvotinc_mc,type="text",intercept.bottom=FALSE)
+				stargazer(m_mp_campaign_season,m_mp_persvotinc_mc,m_mp_int,type="text",intercept.bottom=FALSE)
 				
 				# none of the interaction effects are significant
 				
@@ -1371,14 +1480,49 @@ ls()
 			m_mp_cantype  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
 									age_cent +
 									tenure_cent +
-									campaign_season *
+									campaign_season +
 									candidature_type +
-									(year_cent | country) +
+								#	(1 | country) + # (year_cent | country) +
 									(1 | pers_id)
 									,data=DT, family= binomial) #	,data=DT)
 				summary(m_mp_cantype)
-				stargazer(m_mp_campaign_season,m_mp_persvotinc,m_mp_persvotinc_int,m_mp_cantype,type="text",intercept.bottom=FALSE)
+				stargazer(m_mp_campaign_season,m_mp_persvotinc_mc,m_mp_int,m_mp_cantype,type="text",intercept.bottom=FALSE)
 		
+		# some convergence issues are reported, so let me look into those
+		summary(m_mp_campaign_season)
+		summary(m_mp_persvotinc_mc) # convergence issue reported here already
+		summary(m_mp_int)
+		
+		# let's crosstab the different persvoteins categories with pers_id
+		table(DT$pers_id,DT$persvoteins)
+		
+		# only the smaller categories are interesting here
+		table(DT$persvoteins)
+		DT_SMALL_INTCAT <- DT[which(DT$persvoteins == "cat 5 (lowest incentive)- DE closed list"),]
+		table(DT_SMALL_INTCAT$pers_id,DT_SMALL_INTCAT$persvoteins) 
+		
+		# yes, looks like an issue, lets try to collapse category 4 and 5
+		DT$persvoteinssimple <- as.character(DT$persvoteins)
+		DT$persvoteinssimple[which(DT$persvoteinssimple == "cat 5 (lowest incentive)- DE closed list")] <- "cat 4-5 (lowest incentive) - DE mixed or closed list"
+		DT$persvoteinssimple[which(DT$persvoteinssimple == "cat 4 - DE mixed")] <- "cat 4-5 (lowest incentive) - DE mixed or closed list"
+		DT$persvoteinssimple <- factor(DT$persvoteinssimple)
+		table(DT$persvoteins)
+		table(DT$persvoteinssimple)
+		
+		# and the model with these categories
+			m_mp_persvotinc_mc_simp  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+									age_cent +
+									tenure_cent +
+									campaign_season +
+									country +
+									persvoteinssimple +
+								#	(1 | country) + # (year_cent | country) + # does not really add anything anymore when country is in as a fixed effect.
+									(1 | pers_id)
+									,data=DT, family= binomial) #	,data=DT)
+				summary(m_mp_persvotinc_mc_simp)
+				stargazer(m_mp_campaign_season,m_mp_persvotinc,m_mp_persvotinc_mc_simp,type="text",intercept.bottom=FALSE)
+		
+		# all looks quite simular
 		
 ###
 ## H2: Swiss and German MPs use more local cues when the electoral system offers incentives to cultivate a personal vote.
