@@ -1057,11 +1057,13 @@ ls()
 			# variable generation taken from above, but now the the 'next election' dates!
 			# number of months before the election - 
 			DT$NRMonthsBeforeElection <- round(as.numeric((DT$date_of_next_election - DT$timest) /30),0) 
+			summary(DT$NRMonthsBeforeElection)
+			
 			head(DT)
 			summary(DT$NRMonthsBeforeElection)
 			
 			# and as the key dummy
-			DT$campaign_season <- ifelse(DT$NRMonthsBeforeElection <= 6,"yes","no")
+			DT$campaign_season <- ifelse(DT$NRMonthsBeforeElection <= 6 & DT$NRMonthsBeforeElection > 0,"yes","no") # this bug due to a round error is quite important? quite some 'campaign season' observations where dropped still.
 			table(DT$campaign_season)
 			table(is.na(DT$campaign_season))
 			
@@ -1076,15 +1078,29 @@ ls()
 		
 			ggplot(data = DT, aes(x = timest, y = pers_loc,colour=campaign_season)) +
 			geom_point() +
-			geom_jitter() +
-			geom_smooth() +
+			# geom_jitter() +
+			# geom_smooth() +
 			facet_grid(country ~ .) +
 			scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
-			geom_rect(data=DT, aes(xmin=date_of_next_election- months(6), xmax=date_of_next_election, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") 
-			# hey! there is an issue with the construction of the campaign season for here! last 6 months of observation period are erroniously classified as campaign season?!
+		#	geom_rect(data=DT, aes(xmin=date_of_next_election- months(6), xmax=date_of_next_election, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2009-09-27 00:00:00 GMT") & DT$country == "DE",],method=lm) + # DE starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT") & DT$country == "DE",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT") & DT$country == "DE",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2021-09-26 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT") & DT$country == "DE",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT") & DT$country == "CH",],method=lm) + # CH starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT") & DT$country == "CH",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT") & DT$country == "CH",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2023-10-22 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT") & DT$country == "CH",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT") & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT")- months(6) & DT$country == "DE",],method=lm) + # DE outside of campaign season starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT") & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT")- months(6) & DT$country == "DE",],method=lm) +  
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT") & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT")- months(6) & DT$country == "DE",],method=lm) +  
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2007-10-21 00:00:00 GMT") & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT")- months(6) & DT$country == "CH",],method=lm) + # CH outside of campaign season starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT") & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT")- months(6) & DT$country == "CH",],method=lm) + 
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT") & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT")- months(6) & DT$country == "CH",],method=lm) + 
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT") & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT")- months(6) & DT$country == "CH",],method=lm) 
+			
+			# hey! there was an issue with the construction of the campaign season for here! last 6 months of observation period are erroniously classified as campaign season?!
 
-					
-	
 		# add this to the model
 				m_mp_campaign_season  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
 									age_cent +
@@ -1094,7 +1110,7 @@ ls()
 									(1 | pers_id)
 									,data=DT, family= binomial) #	,data=DT)
 				summary(m_mp_campaign_season)
-				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,m_mp_campaign_season,type="text",intercept.bottom=FALSE)
+				stargazer(m_mp_empty,m_mp_time_country,m_mp_tenure,m_mp_campaign_season,type="text",intercept.bottom=FALSE) # still same effect
 			#	ranef(m_mp_campaign_season)
 			#	se(m_mp_campaign_season)
 			
@@ -1123,13 +1139,13 @@ ls()
 				fix2 <- fixef(m_mp_campaign_season)
 				fix2
 				
-				exp(fix2[1])/(1+exp(fix2[1]))*100 # so about 5.5% indeed? -- was around 8.6% on the country level.. do I understand that? info lost in averaging? influential observations on those means?
+				exp(fix2[1])/(1+exp(fix2[1]))*100 # around 6.5
 		
 				# inspection that might inform this 'influential obs interpretation': indeed some suggestion that that is exactly what is happening!
 					 hist(DT$percentage_local_indvlevel)
 				     hist(TWT$pers_loc)
 					
-				exp(fix2[1]+fix2[5])/(1+exp(fix2[1]+fix2[5]))*100 # so would be about 6.9%, so quite an effect, relatively at least.
+				exp(fix2[1]+fix2[5])/(1+exp(fix2[1]+fix2[5]))*100 # around 6.4
 	
 		# OK, and what if we add a fixed effect for country?
 			m_mp_campaign_season_count  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
