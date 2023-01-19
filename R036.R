@@ -48,6 +48,7 @@
 	if("ggpubr" %in% rownames(installed.packages()) == FALSE) {install.packages("sjPlot")}
 	if("dotwhisker" %in% rownames(installed.packages()) == FALSE) {install.packages("dotwhisker")}
 	if("psych" %in% rownames(installed.packages()) == FALSE) {install.packages("psych")}
+	if("car" %in% rownames(installed.packages()) == FALSE) {install.packages("car")}
 
 # Load packages
 	library(openxlsx)
@@ -69,6 +70,7 @@
 	library(ggpubr)
 	library(dotwhisker)
 	library(psych)
+	library(car)
 
 substrRight <- function(x, n)
 	{
@@ -1487,8 +1489,91 @@ ls()
 				stargazer(m_mp_campaign_season,m_mp_persvotinc_mc,type="text",intercept.bottom=FALSE)
 				stargazer(m_mp_campaign_season,m_mp_persvotinc_mc,m_mp_int,type="text",intercept.bottom=FALSE)
 				
-				# none of the interaction effects are significant
+				stargazer(m_mp_campaign_season_red,m_mp_persvotinc_mc,m_mp_int,type="text",intercept.bottom=FALSE)
 				
+				# none of the interaction effects are significant
+			
+		# intpreting the effect sizes
+			plot_model(m_mp_int)
+			
+			m1 <- m_mp_int
+			# getting estimates for the different groups
+				fix4 <- cbind(fixef(m1),seq(from=1,to=length(fixef(m1)),by=1))
+				fix4	
+			
+				# fix4 <- fixef(m_mp_int)
+				# fix4
+				
+				# here
+				exp(fix4[1])/(1+exp(fix4[1]))*100 # cat 4 - German 
+					
+				exp(fix4[1]+fix4[5])/(1+exp(fix4[1]+fix4[5]))*100 
+			
+			# cat 1 - DEU: pure district candidate & CHE FPTP
+
+				# outside of campaign season
+				exp(fix4[1]+fix4[14])/(1+exp(fix4[1]+fix4[14]))*100
+				deltaMethod(m1,"exp(x1+x14)/(1+exp(x1+x14))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+			
+				# during campaign season
+				exp(fix4[1]+fix4[5]+fix4[14]+fix4[9])/(1+exp(fix4[1]+fix4[14]+fix4[9]))*100
+				deltaMethod(m1,"exp(x1+x5+x14+x9)/(1+exp(x1+x14+x9))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+
+			# cat 2 - CHE: open-list candidate for the National Council
+			
+				# outside of campaign season
+				exp(fix4[1]+fix4[13])/(1+exp(fix4[1]+fix4[13]))*100
+				deltaMethod(m1,"exp(x1+x13)/(1+exp(x1+x13))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+			
+				# during campaign season
+				exp(fix4[1]+fix4[5]+fix4[13]+fix4[8])/(1+exp(fix4[1]+fix4[13]+fix4[8]))*100
+				deltaMethod(m1,"exp(x1+x5+x13+x8)/(1+exp(x1+x13+x8))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+
+			# cat 3 - CHE open-list candidate for the National Council and has also been at some point first-past-the-post candidate for the Council of States
+			
+				# outside of campaign season
+				exp(fix4[1]+fix4[12])/(1+exp(fix4[1]+fix4[12]))*100
+				deltaMethod(m1,"exp(x1+x12)/(1+exp(x1+x12))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+			
+				# during campaign season
+				exp(fix4[1]+fix4[5]+fix4[12]+fix4[7])/(1+exp(fix4[1]+fix4[12]+fix4[7]))*100
+				deltaMethod(m1,"exp(x1+x5+x12+x7)/(1+exp(x1+x12+x7))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+		
+			# cat 4 - DEU: mixed candidates
+
+				# outside of campaign season
+				exp(fix4[1])/(1+exp(fix4[1]))*100 
+				deltaMethod(m1,"exp(x1)/(1+exp(x1))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				
+				# during campaign season
+				exp(fix4[1]+fix4[5]+fix4[5])/(1+exp(fix4[1]+fix4[5]))*100 
+				deltaMethod(m1,"exp(x1+x5)/(1+exp(x1+x5))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+			
+			# cat 5 - DEU: (closed) list candidate
+			
+				# outside of campaign season
+				exp(fix4[1]+fix4[11])/(1+exp(fix4[1]+fix4[11]))*100
+				deltaMethod(m1,"exp(x1+x11)/(1+exp(x1+x11))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+			
+				# during campaign season
+				exp(fix4[1]+fix4[5]+fix4[11]+fix4[6])/(1+exp(fix4[1]+fix4[11]+fix4[6]))*100
+				deltaMethod(m1,"exp(x1+x5+x11+x6)/(1+exp(x1+x11+x6))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+			
+		# OK, lets add a model with campaign_season only as well.
+			m_mp_campaignsonly  <- glmer(BinomialResponseMatrixRED~ #year_cent + # pers_loc~ year_cent +
+									#age_cent +
+									#tenure_cent +
+									campaign_season +
+									#country +
+									(1 | country) + # (year_cent | country) +
+									(1 | pers_id)
+									,data=DT_RED, family= binomial) #	,data=DT)
+				summary(m_mp_campaignsonly)
+			
+			stargazer(m_mp_campaign_season_red,m_mp_persvotinc_mc,m_mp_int,type="text",intercept.bottom=FALSE)
+			stargazer(m_mp_campaignsonly,m_mp_campaign_season_red,m_mp_persvotinc_mc,type="text",intercept.bottom=FALSE)
+
+			
 		# what if we just do candidacy type?
 			table(DT$candidature_type)
 			DT$candidature_type <- factor(DT$candidature_type, levels=c("LD","L","D"))
@@ -1504,6 +1589,7 @@ ls()
 									,data=DT, family= binomial) #	,data=DT)
 				summary(m_mp_cantype)
 				stargazer(m_mp_campaign_season,m_mp_persvotinc_mc,m_mp_int,m_mp_cantype,type="text",intercept.bottom=FALSE)
+	
 		
 		# some convergence issues are reported, so let me look into those
 		summary(m_mp_campaign_season)
