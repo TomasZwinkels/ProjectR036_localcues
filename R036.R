@@ -998,9 +998,65 @@ ls()
 			nrow(DT)
 			summary(DT$leg_period_start_asdate)
 		
-			# variable generation taken from above
+
+			# OK, so crucially, we need the election dates, not the legistaltive period end dates to decide when the campaign_season was!
+			
+				# let's do this manually for now
+				
+					# default is emptu
+					
+						DT$date_of_next_election <- as.POSIXct(rep(NA, nrow(DT)))
+				
+					# for DE
+					
+						table(DT$parliament_id)
+						
+						# DE_NT-BT_2005 - so next parliament is DE_NT-BT_2009, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2005")] <- as.POSIXct("2009-09-27 00:00:00 GMT") # as.POSIXct("27sep2009",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# DE_NT-BT_2009 - 27 September 2009 - so next parliament is DE_NT-BT_2013, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2009")] <- as.POSIXct("2013-09-22 00:00:00 GMT")# as.POSIXct("22sep2013",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# DE_NT-BT_2013 -  22 September 2013 - so next parliament is DE_NT-DE_NT-BT_2017, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2013")] <- as.POSIXct("2017-09-24 00:00:00 GMT")# as.POSIXct("24sep2017",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# DE_NT-BT_2017 - 24 September 2017 - so next parliament is DE_NT-BT_2011, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2017")] <- as.POSIXct("2021-09-26 00:00:00 GMT")# as.POSIXct("26sep2021",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# DE_NT-BT_2017 - 26 September 2021
+
+					# for CH
+					
+						# CH_NT-NR_2007 - so next parliament is CH_NT-NR_2011 , see date below
+						DT$date_of_next_election[which(DT$parliament_id == "CH_NT-NR_2007")] <- as.POSIXct("2011-10-23 00:00:00 GMT") # as.POSIXct("23oct2011",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+		
+						# CH_NT-NR_2011 - 23 October 2011 - so next parliament is CH_NT-NR_2015 , see date below
+						DT$date_of_next_election[which(DT$parliament_id == "CH_NT-NR_2011")] <- as.POSIXct("2015-10-18 00:00:00 GMT")# as.POSIXct("18oct2015",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# CH_NT-NR_2015 - 18 October 2015 - so next parliament is CH_NT-NR_2019, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "CH_NT-NR_2015")] <- as.POSIXct("2019-10-20 00:00:00 GMT")# as.POSIXct("20oct2019",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# CH_NT-NR_2019 - 20 October 2019 - so next parliament is CH_NT-NR_2023, see date below
+						DT$date_of_next_election[which(DT$parliament_id == "CH_NT-NR_2019")] <- as.POSIXct("2023-10-22 00:00:00 GMT")# as.POSIXct("22oct2023",format=c("%d%b%Y"))
+						table(DT$date_of_next_election)
+						
+						# CH_NT-NR_2023 - 22 October 2023
+					
+					# any NA left?
+						table(is.na(DT$date_of_next_election))
+						table(DT$date_of_next_election)
+				
+						
+			# variable generation taken from above, but now the the 'next election' dates!
 			# number of months before the election - 
-			DT$NRMonthsBeforeElection <- round(as.numeric((DT$leg_period_end_asdate - DT$timest) /30),0) 
+			DT$NRMonthsBeforeElection <- round(as.numeric((DT$date_of_next_election - DT$timest) /30),0) 
 			head(DT)
 			summary(DT$NRMonthsBeforeElection)
 			
@@ -1010,61 +1066,9 @@ ls()
 			table(is.na(DT$campaign_season))
 			
 			# finding the issue mentioned below!
-			DT_LAST <- DT[which(DT$year == 2019),]
+			DT_LAST <- DT[which(DT$year == 2019 & DT$country == "DE"),]
 			nrow(DT_LAST)
 			head(DT_LAST)
-			
-			# OK, so crucially, we need the election dates, not the legistaltive period end dates.
-			
-				# let's do this manually
-				
-					# default is emptu
-					
-						DT$date_of_next_election <- NA
-				
-					# for DE
-					
-						table(DT$parliament_id)
-						
-						# DE_NT-BT_2005 - so next parliament is DE_NT-BT_2009, see date below
-						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2005")] <- as.POSIXct("27sep2009",format=c("%d%b%Y"))
-						table(DT$date_of_next_election)
-						
-						# DE_NT-BT_2009 - 27 September 2009 - so next parliament is DE_NT-BT_2013, see date below
-						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2009")] <- as.POSIXct("22sep2013",format=c("%d%b%Y"))
-						table(DT$date_of_next_election)
-						
-						# DE_NT-BT_2013 -  22 September 2013 - so next parliament is DE_NT-DE_NT-BT_2017, see date below
-						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2013")] <- as.POSIXct("24sep2017",format=c("%d%b%Y"))
-						table(DT$date_of_next_election)
-						
-						# DE_NT-BT_2017 - 24 September 2017 - so next parliament is DE_NT-BT_2011, see date below
-						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2017")] <- as.POSIXct("26sep2021",format=c("%d%b%Y"))
-						table(DT$date_of_next_election)
-						
-						# DE_NT-BT_2017 - 26 September 2021
-
-					
-					
-					# for CH
-		
-						# CH_NT-NR_2011 - 23 October 2011 - so next parliament is CH_NT-NR_2011 , see date below
-						DT$date_of_next_election[which(DT$parliament_id == "CH_NT-NR_2011")] <- as.POSIXct("18oct2015",format=c("%d%b%Y"))
-						table(DT$date_of_next_election)
-						
-						# CH_NT-NR_2015 - 18 October 2015 - so next parliament is CH_NT-NR_2015, see date below
-						DT$date_of_next_election[which(DT$parliament_id == "CH_NT-NR_2015")] <- as.POSIXct("20oct2019",format=c("%d%b%Y"))
-						table(DT$date_of_next_election)
-						
-						# CH_NT-NR_2019 - 20 October 2019 - so next parliament is CH_NT-NR_2023, see date below
-						DT$date_of_next_election[which(DT$parliament_id == "CH_NT-NR_2019")] <- as.POSIXct("22oct2023",format=c("%d%b%Y"))
-						table(DT$date_of_next_election)
-						
-						# CH_NT-NR_2023 - 22 October 2023
-			
-			
-			
-			
 			
 			#
 			# OK, and a visual like the one above but on the MP/month level
@@ -1076,13 +1080,10 @@ ls()
 			geom_smooth() +
 			facet_grid(country ~ .) +
 			scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
-			geom_rect(data=DT, aes(xmin=leg_period_start_asdate- months(6), xmax=leg_period_start_asdate, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") 
+			geom_rect(data=DT, aes(xmin=date_of_next_election- months(6), xmax=date_of_next_election, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") 
 			# hey! there is an issue with the construction of the campaign season for here! last 6 months of observation period are erroniously classified as campaign season?!
 
-
-						
-	
-						
+					
 	
 		# add this to the model
 				m_mp_campaign_season  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
