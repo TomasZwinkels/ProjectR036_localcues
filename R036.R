@@ -1491,6 +1491,8 @@ ls()
 				
 				stargazer(m_mp_campaign_season_red,m_mp_persvotinc_mc,m_mp_int,type="text",intercept.bottom=FALSE)
 				
+				stargazer(m_mp_campaign_season_red,m_mp_persvotinc_mc,m_mp_int,intercept.bottom=FALSE)
+				
 				# none of the interaction effects are significant
 			
 		# intpreting the effect sizes
@@ -1508,6 +1510,11 @@ ls()
 				exp(fix4[1])/(1+exp(fix4[1]))*100 # cat 4 - German 
 					
 				exp(fix4[1]+fix4[5])/(1+exp(fix4[1]+fix4[5]))*100 
+			
+			# average in the different countries
+				
+				deltaMethod(m1,"exp(x1)/(1+exp(x1))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				deltaMethod(m1,"exp(x1+x10)/(1+exp(x1+x10))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 			# cat 1 - DEU: pure district candidate & CHE FPTP
 
@@ -1529,7 +1536,7 @@ ls()
 				exp(fix4[1]+fix4[5]+fix4[13]+fix4[8])/(1+exp(fix4[1]+fix4[13]+fix4[8]))*100
 				deltaMethod(m1,"exp(x1+x5+x13+x8)/(1+exp(x1+x13+x8))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 
-			# cat 3 - CHE open-list candidate for the National Council and has also been at some point first-past-the-post candidate for the Council of States
+			# cat 3 - CHE open-list candidate for the NC and also first-past-the-post candidate for the COS
 			
 				# outside of campaign season
 				exp(fix4[1]+fix4[12])/(1+exp(fix4[1]+fix4[12]))*100
