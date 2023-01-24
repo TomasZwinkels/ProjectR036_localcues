@@ -787,7 +787,7 @@ ls()
 			TWT$NRMonthsBeforeElection <- round(as.numeric((TWT$leg_period_end_asdate - TWT$timest) /30),0) # taken from https://stackoverflow.com/questions/25369817/how-do-i-use-the-lubridate-package-to-calculate-the-number-of-months-between-two
 		
 			# and the core dummy
-			TWT$campaign_season <- ifelse(TWT$NRMonthsBeforeElection <= 6,"yes","no")
+			TWT$campaign_season <- ifelse(TWT$NRMonthsBeforeElection <= 3,"yes","no")
 		
 		# the next step for the model
 		
@@ -1064,8 +1064,11 @@ ls()
 			head(DT)
 			summary(DT$NRMonthsBeforeElection)
 			
+			# set the length of the campaign season
+			lengthcampaignseason = 3
+			
 			# and as the key dummy
-			DT$campaign_season <- ifelse(DT$NRMonthsBeforeElection <= 6 & DT$NRMonthsBeforeElection > 0,"yes","no") # this bug due to a round error is quite important? quite some 'campaign season' observations where dropped still.
+			DT$campaign_season <- ifelse(DT$NRMonthsBeforeElection <= lengthcampaignseason & DT$NRMonthsBeforeElection > 0,"yes","no") # this bug due to a round error is quite important? quite some 'campaign season' observations where dropped still.
 			table(DT$campaign_season)
 			table(is.na(DT$campaign_season))
 			
@@ -1084,24 +1087,25 @@ ls()
 			# geom_smooth() +
 			facet_grid(country ~ .) +
 			scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
-		#	geom_rect(data=DT, aes(xmin=date_of_next_election- months(6), xmax=date_of_next_election, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2009-09-27 00:00:00 GMT") & DT$country == "DE",],method=lm) + # DE starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT") & DT$country == "DE",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT") & DT$country == "DE",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2021-09-26 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT") & DT$country == "DE",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT") & DT$country == "CH",],method=lm) + # CH starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT") & DT$country == "CH",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT") & DT$country == "CH",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2023-10-22 00:00:00 GMT")- months(6) & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT") & DT$country == "CH",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT") & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT")- months(6) & DT$country == "DE",],method=lm) + # DE outside of campaign season starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT") & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT")- months(6) & DT$country == "DE",],method=lm) +  
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT") & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT")- months(6) & DT$country == "DE",],method=lm) +  
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2007-10-21 00:00:00 GMT") & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT")- months(6) & DT$country == "CH",],method=lm) + # CH outside of campaign season starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT") & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT")- months(6) & DT$country == "CH",],method=lm) + 
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT") & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT")- months(6) & DT$country == "CH",],method=lm) + 
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT") & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT")- months(6) & DT$country == "CH",],method=lm) 
+		#	geom_rect(data=DT, aes(xmin=date_of_next_election- months(lengthcampaignseason), xmax=date_of_next_election, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2009-09-27 00:00:00 GMT") & DT$country == "DE",],method=lm) + # DE starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT") & DT$country == "DE",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT") & DT$country == "DE",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT") & DT$country == "DE",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT") & DT$country == "CH",],method=lm) + # CH starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT") & DT$country == "CH",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT") & DT$country == "CH",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT") & DT$country == "CH",],method=lm) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT") & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm) + # DE outside of campaign season starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT") & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm) +  
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT") & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm) +  
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2007-10-21 00:00:00 GMT") & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm) + # CH outside of campaign season starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT") & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm) + 
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT") & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm) + 
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT") & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm) 
 			
 			# hey! there was an issue with the construction of the campaign season for here! last 6 months of observation period are erroniously classified as campaign season?!
+			# please note this has been switched to 3 months now.
 
 		# add this to the model
 				m_mp_campaign_season  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
