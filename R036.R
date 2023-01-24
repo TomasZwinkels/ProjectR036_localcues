@@ -1088,21 +1088,28 @@ ls()
 			facet_grid(country ~ .) +
 			scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
 		#	geom_rect(data=DT, aes(xmin=date_of_next_election- months(lengthcampaignseason), xmax=date_of_next_election, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2009-09-27 00:00:00 GMT") & DT$country == "DE",],method=lm) + # DE starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT") & DT$country == "DE",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT") & DT$country == "DE",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT") & DT$country == "DE",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT") & DT$country == "CH",],method=lm) + # CH starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT") & DT$country == "CH",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT") & DT$country == "CH",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT") & DT$country == "CH",],method=lm) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT") & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm) + # DE outside of campaign season starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT") & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm) +  
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT") & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm) +  
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2007-10-21 00:00:00 GMT") & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm) + # CH outside of campaign season starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT") & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm) + 
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT") & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm) + 
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT") & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm) 
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2009-09-27 00:00:00 GMT") & DT$country == "DE",],method=lm,color="darkgreen",size=1.5) + # DE starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT") & DT$country == "DE",],method=lm,color="darkgreen",size=1.5) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT") & DT$country == "DE",],method=lm,color="darkgreen",size=1.5) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT") & DT$country == "DE",],method=lm,color="darkgreen",size=1.5) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT") & DT$country == "CH",],method=lm,color="darkgreen",size=1.5) + # CH starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT") & DT$country == "CH",],method=lm,color="darkgreen",size=1.5) +
+		#	geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT") & DT$country == "CH",],method=lm,color="darkgreen",size=2) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT") & DT$country == "CH",],method=lm,color="darkgreen",size=1.5) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT") & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm,color="darkred",size=1.5) + # DE outside of campaign season starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT") & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm,color="darkred",size=1.5) +  
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT") & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm,color="darkred",size=1.5) +  
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2007-10-21 00:00:00 GMT") & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm,color="darkred",size=1.5) + # CH outside of campaign season starts here
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT") & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm,color="darkred",size=1.5) + 
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT") & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm,color="darkred",size=1.5) +
+			geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT") & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm,color="darkred",size=1.5) +
+			theme_pubr(base_size =20) +
+			xlab("Time") +
+			ylab("% of MP's tweets this month with a local cue") +
+			guides(colour=guide_legend(title="Campaign Season")) +
+		    theme(panel.grid.major.y = element_line(color = "darkgrey",
+                                          size = 0.5,
+                                          linetype = 2))
 			
 			# hey! there was an issue with the construction of the campaign season for here! last 6 months of observation period are erroniously classified as campaign season?!
 			# please note this has been switched to 3 months now.
@@ -1533,22 +1540,22 @@ ls()
 			# cat 2 - CHE: open-list candidate for the National Council
 			
 				# outside of campaign season
-				exp(fix4[1]+fix4[13])/(1+exp(fix4[1]+fix4[13]))*100
-				deltaMethod(m1,"exp(x1+x13)/(1+exp(x1+x13))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[10]+fix4[13])/(1+exp(fix4[1]+fix4[10]+fix4[13]))*100
+				deltaMethod(m1,"exp(x1+x10+x13)/(1+exp(x1+x10+x13))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[5]+fix4[13]+fix4[8])/(1+exp(fix4[1]+fix4[13]+fix4[8]))*100
-				deltaMethod(m1,"exp(x1+x5+x13+x8)/(1+exp(x1+x13+x8))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[10]+fix4[5]+fix4[13]+fix4[8])/(1+exp(fix4[1]+fix4[10]+fix4[13]+fix4[8]))*100
+				deltaMethod(m1,"exp(x1+x10+x5+x13+x8)/(1+exp(x1+x10+x13+x8))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 
 			# cat 3 - CHE open-list candidate for the NC and also first-past-the-post candidate for the COS
 			
 				# outside of campaign season
-				exp(fix4[1]+fix4[12])/(1+exp(fix4[1]+fix4[12]))*100
-				deltaMethod(m1,"exp(x1+x12)/(1+exp(x1+x12))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[10]+fix4[12])/(1+exp(fix4[1]+fix4[10]+fix4[12]))*100
+				deltaMethod(m1,"exp(x1+x10+x12)/(1+exp(x1+x10+x12))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[5]+fix4[12]+fix4[7])/(1+exp(fix4[1]+fix4[12]+fix4[7]))*100
-				deltaMethod(m1,"exp(x1+x5+x12+x7)/(1+exp(x1+x12+x7))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[10]+fix4[5]+fix4[12]+fix4[7])/(1+exp(fix4[1]+fix4[10]+fix4[12]+fix4[7]))*100
+				deltaMethod(m1,"exp(x1+x10+x5+x12+x7)/(1+exp(x1+x10+x12+x7))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 		
 			# cat 4 - DEU: mixed candidates
 
