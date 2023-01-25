@@ -49,6 +49,8 @@
 	if("dotwhisker" %in% rownames(installed.packages()) == FALSE) {install.packages("dotwhisker")}
 	if("psych" %in% rownames(installed.packages()) == FALSE) {install.packages("psych")}
 	if("car" %in% rownames(installed.packages()) == FALSE) {install.packages("car")}
+	if("MASS" %in% rownames(installed.packages()) == FALSE) {install.packages("MASS")}
+	if("pscl" %in% rownames(installed.packages()) == FALSE) {install.packages("pscl")}
 
 # Load packages
 	library(openxlsx)
@@ -71,6 +73,8 @@
 	library(dotwhisker)
 	library(psych)
 	library(car)
+	library(MASS)
+	library(pscl)
 
 substrRight <- function(x, n)
 	{
@@ -1077,33 +1081,40 @@ ls()
 			nrow(DT_LAST)
 			head(DT_LAST)
 			
+				# how much of this is due to the drop in data?
+			#	DT_RED <- DT[which(!is.na(DT$persvoteins)),]
+			#	nrow(DT_RED)
+			#	DTHERE <- DT_RED
+			DTHERE <- DT
+			
 			#
 			# OK, and a visual like the one above but on the MP/month level
 			#
 		
-			ggplot(data = DT, aes(x = timest, y = pers_loc,colour=campaign_season)) +
+			ggplot(data = DTHERE, aes(x = timest, y = pers_loc,colour=campaign_season)) +
 			geom_point() +
 			# geom_jitter() +
 			# geom_smooth() +
 			facet_grid(country ~ .) +
+			#facet_grid(persvoteins ~ .) +
 			scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
-		#	geom_rect(data=DT, aes(xmin=date_of_next_election- months(lengthcampaignseason), xmax=date_of_next_election, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2009-09-27 00:00:00 GMT") & DT$country == "DE",],method=lm,color="darkgreen",size=1.5) + # DE starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT") & DT$country == "DE",],method=lm,color="darkgreen",size=1.5) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT") & DT$country == "DE",],method=lm,color="darkgreen",size=1.5) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT") & DT$country == "DE",],method=lm,color="darkgreen",size=1.5) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT") & DT$country == "CH",],method=lm,color="darkgreen",size=1.5) + # CH starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT") & DT$country == "CH",],method=lm,color="darkgreen",size=1.5) +
-		#	geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT") & DT$country == "CH",],method=lm,color="darkgreen",size=2) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT") & DT$country == "CH",],method=lm,color="darkgreen",size=1.5) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2009-09-27 00:00:00 GMT") & DT$timest<as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm,color="darkred",size=1.5) + # DE outside of campaign season starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2013-09-22 00:00:00 GMT") & DT$timest<as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm,color="darkred",size=1.5) +  
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2017-09-24 00:00:00 GMT") & DT$timest<as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "DE",],method=lm,color="darkred",size=1.5) +  
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2007-10-21 00:00:00 GMT") & DT$timest<as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm,color="darkred",size=1.5) + # CH outside of campaign season starts here
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2011-10-23 00:00:00 GMT") & DT$timest<as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm,color="darkred",size=1.5) + 
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2015-10-18 00:00:00 GMT") & DT$timest<as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm,color="darkred",size=1.5) +
-			geom_smooth(data=DT[DT$timest>as.POSIXct("2019-10-20 00:00:00 GMT") & DT$timest<as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DT$country == "CH",],method=lm,color="darkred",size=1.5) +
-			theme_pubr(base_size =20) +
+		#	geom_rect(data=DTHERE, aes(xmin=date_of_next_election- months(lengthcampaignseason), xmax=date_of_next_election, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2009-09-27 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2009-09-27 00:00:00 GMT") & DTHERE$country == "DE",],method=lm,color="darkgreen",size=1.5) + # DE starts here
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2013-09-22 00:00:00 GMT") & DTHERE$country == "DE",],method=lm,color="darkgreen",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2017-09-24 00:00:00 GMT") & DTHERE$country == "DE",],method=lm,color="darkgreen",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2021-09-26 00:00:00 GMT") & DTHERE$country == "DE",],method=lm,color="darkgreen",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2011-10-23 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=1.5) + # CH starts here
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2015-10-18 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=1.5) +
+		#	geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2019-10-20 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=2) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2023-10-22 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2009-09-27 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "DE",],method=lm,color="darkred",size=1.5) + # DE outside of campaign season starts here
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2013-09-22 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "DE",],method=lm,color="darkred",size=1.5) +  
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2017-09-24 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "DE",],method=lm,color="darkred",size=1.5) +  
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2007-10-21 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) + # CH outside of campaign season starts here
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2011-10-23 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) + 
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2015-10-18 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2019-10-20 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) +
+			theme_pubr(base_size =20) + # theme_pubr(base_size =20) +
 			xlab("Time") +
 			ylab("% of MP's tweets this month with a local cue") +
 			guides(colour=guide_legend(title="Campaign Season")) +
@@ -1364,6 +1375,8 @@ ls()
 		names(TEMP) %in% names(DT)
 		
 		DT <- TEMP
+		
+		table(is.na(DT$persvoteins),DT$country)
 
 		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 4 - DE mixed","cat 5 (lowest incentive)- DE closed list","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 (highest incentive) - DE dis and CH fptp"))
 		
@@ -1422,10 +1435,19 @@ ls()
 			table(DT_RED$country) # OK, so actual all the dropped cases are in Germany, does that make sense?
 		
 			# need an updated BinomialResponseMatrix for this as well ofcourse
+				
+				# lets check if the cases match! (we are setting this up for a check futher below, around line 1533) -- the trick here is to use pers_id and tenure together, who should be unique
+				DT_RED$pers_id_tenure_cent <- paste0(DT_RED$pers_id,format(round(DT_RED$tenure_cent,digits=2), nsmall = 2))
+				head(DT_RED$pers_id_tenure_cent)
+				tail(DT_RED$pers_id_tenure_cent)
+				# are these indeed unique
+				length(DT_RED$pers_id_tenure) == length(unique(DT_RED$pers_id_tenure))  # should return TRUE
+			
 			nrofsuccesRED <- DT_RED$nr_of_tweets_with_localque
 			nrpffailuresRED <- DT_RED$total_nr_of_tweets - DT_RED$nr_of_tweets_with_localque
 			BinomialResponseMatrixRED <- as.matrix(cbind(nrofsuccesRED,nrpffailuresRED))
 			head(BinomialResponseMatrixRED)
+			nrow(BinomialResponseMatrixRED)
 		
 			m_mp_campaign_season_red  <- glmer(BinomialResponseMatrixRED~ year_cent + # pers_loc~ year_cent +
 									age_cent +
@@ -1448,7 +1470,7 @@ ls()
 			library(corrplot)
 			corrplot(cormat, method = "color") # maybe some multi-collinearity with year?
 			
-			m_mp_persvotinc_mc  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+			m_mp_persvotinc_mc  <- glmer(BinomialResponseMatrixRED~ year_cent + # pers_loc~ year_cent +
 									age_cent +
 									tenure_cent +
 									campaign_season +
@@ -1456,7 +1478,7 @@ ls()
 									persvoteins +
 								#	(1 | country) + # (year_cent | country) + # does not really add anything anymore when country is in as a fixed effect.
 									(1 | pers_id)
-									,data=DT, family= binomial) #	,data=DT)
+									,data=DT_RED, family= binomial) #	,data=DT)
 				summary(m_mp_persvotinc_mc)
 				stargazer(m_mp_campaign_season,m_mp_persvotinc,m_mp_persvotinc_mc,type="text",intercept.bottom=FALSE)
 
@@ -1487,7 +1509,25 @@ ls()
 				prop.table(table(DT$campaign_season_num, DT$persvoteins),2)
 		
 		# and with the interactions
-				m_mp_int  <- glmer(BinomialResponseMatrix~ year_cent + # pers_loc~ year_cent +
+		
+				# OK, lets test my misaligned BinomialResponseMatrix hypothesises
+				BinomialResponseMatrixWrong <- BinomialResponseMatrix[1:15027,]
+				nrow(BinomialResponseMatrixWrong)
+				nrow(BinomialResponseMatrixRED)
+				# use 'BinomialResponseMatrixWrong' below to see if the same result comes out as when 'BinomialResponseMatrix' is used.
+				
+				# OK, so you do get an error here: Error in model.frame.default(data = DT, drop.unused.levels = TRUE, formula = BinomialResponseMatrixWrong ~  : variable lengths differ (found for 'year_cent') -- right, so the point is that I would like to total length to be the same, that is checked. This makes sense to me.
+				# how can I test this then?! -- I guess I need to use DT_RED 
+				# nope, still not the exact same result....
+				# I guess the more important question is: do I know for sure that the model that uses BinomialResponseMatrixRED is correct.
+				
+				# for the check below, we need a case unique identifier
+				DT_RED$pers_id_month <- paste0(DT_RED$pers_id,DT_RED$month)
+				head(DT_RED$pers_id_month)
+				# are these indeed unique
+				length(DT_RED$pers_id_month) == length(unique(DT_RED$pers_id_month))  # should return TRUE
+				
+				m_mp_int  <- glmer(BinomialResponseMatrixRED~ year_cent + # pers_loc~ year_cent +
 									age_cent +
 									tenure_cent +
 									campaign_season *
@@ -1495,8 +1535,29 @@ ls()
 									country +
 								#	(1 | country) + # (year_cent | country) +
 									(1 | pers_id)
-									,data=DT, family= binomial) #	,data=DT)
+									,data=DT_RED, family= binomial) #	,data=DT)
 				summary(m_mp_int)
+				
+				DATAUSEDINMODEL <- model.frame(m_mp_int)
+				head(DATAUSEDINMODEL)
+				DATAUSEDINMODEL$pers_id_tenure <- paste0(DATAUSEDINMODEL$pers_id,format(round(DATAUSEDINMODEL$tenure,digits=2), nsmall = 2))
+				head(DATAUSEDINMODEL$pers_id_tenure)
+				tail(DATAUSEDINMODEL$pers_id_tenure)
+				length(DATAUSEDINMODEL$pers_id_tenure) == length(unique(DATAUSEDINMODEL$pers_id_tenure))  # should return TRUE
+				
+				# do these match?
+				table(DT_RED$pers_id_tenure == DATAUSEDINMODEL$pers_id_tenure) # yes, all match. Great! # also matches on the 'incorrect' model? -- in any case, I know the model that runs on BinomialResponseMatrixRED and DT_RED is correct in this regard.
+				str(DT_RED)
+				str(DATAUSEDINMODEL)
+				
+				# and checking the biomial response matrix again against DTRED
+				head(BinomialResponseMatrixRED)
+				percentagefrommatrix <- BinomialResponseMatrixRED[,1] / (BinomialResponseMatrixRED[,1] + BinomialResponseMatrixRED[,2])
+				table(percentagefrommatrix == DT_RED$percentage_local_indvlevel) # match!
+				
+				head(model.frame(m_mp_int))
+				head(model.frame(terms = c(all.vars(m_mp_int), pers_id_month), data = DT_RED))
+				
 				stargazer(m_mp_campaign_season,m_mp_persvotinc_mc,type="text",intercept.bottom=FALSE)
 				stargazer(m_mp_campaign_season,m_mp_persvotinc_mc,m_mp_int,type="text",intercept.bottom=FALSE)
 				
@@ -1504,7 +1565,68 @@ ls()
 				
 				stargazer(m_mp_campaign_season_red,m_mp_persvotinc_mc,m_mp_int,intercept.bottom=FALSE)
 				
-				# none of the interaction effects are significant
+				# what is the time-frame?
+				summary(DT_RED)
+				range(DT_RED$timest)
+				
+				# number of tweets during and outside of campaign season
+				head(DT)
+				tapply(DT$total_nr_of_tweets, DT$campaign_season, mean)
+
+		# and some alternative model specifications in line with what Oliver suggested.
+
+				# Poisson regression
+				m_poisson  <- glmer(nr_of_tweets_with_localque ~ year_cent + 
+								   age_cent +
+								   tenure_cent +
+								   campaign_season *
+								   persvoteins +
+								   country +
+								   total_nr_of_tweets +
+								   (1 | pers_id)
+								   ,data=DT_RED, family=poisson(link='log'))
+				summary(m_poisson)
+
+				# Negative binomial regression
+				m_nb  <-  glmer.nb(	nr_of_tweets_with_localque ~ year_cent + 
+									age_cent +
+									tenure_cent +
+									campaign_season *
+									persvoteins +
+									country +
+									total_nr_of_tweets +
+									(1 | pers_id)
+									,data=DT_RED)
+				summary(m_nb)
+
+				# Zero-inflated Poisson model
+				library(pscl)
+				m_zip  <- zeroinfl(nr_of_tweets_with_localque ~ year_cent + 
+								   age_cent +
+								   tenure_cent +
+								   campaign_season *
+								   persvoteins +
+								   country +
+								   total_nr_of_tweets | 1,
+								   data=DT, dist="poisson")
+				summary(m_zip)
+
+				# Zero-inflated Negative binomial model
+				m_zinb  <- zeroinfl(nr_of_tweets_with_localque ~ year_cent + 
+								   age_cent +
+								   tenure_cent +
+								   campaign_season *
+								   persvoteins +
+								   country +
+								   total_nr_of_tweets 
+							#	   (1 | pers_id)
+								   ,data=DT,dist="negbin")
+				summary(m_zinb)
+
+				# stargazer output
+				stargazer(m_mp_int, m_poisson, m_zip, m_zinb, type = "text")
+				stargazer(m_mp_int, m_poisson, m_nb, m_zip, m_zinb, type = "text")
+
 			
 		# intpreting the effect sizes
 			plot_model(m_mp_int)
@@ -1530,17 +1652,17 @@ ls()
 			# cat 1 - DEU: pure district candidate & CHE FPTP
 
 				# outside of campaign season
-				exp(fix4[1]+fix4[14])/(1+exp(fix4[1]+fix4[14]))*100
-				deltaMethod(m1,"exp(x1+x14)/(1+exp(x1+x14))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[9])/(1+exp(fix4[1]+fix4[9]))*100
+				deltaMethod(m1,"exp(x1+x9)/(1+exp(x1+x9))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[5]+fix4[14]+fix4[9])/(1+exp(fix4[1]+fix4[14]+fix4[9]))*100
-				deltaMethod(m1,"exp(x1+x5+x14+x9)/(1+exp(x1+x14+x9))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[5]+fix4[9]+fix4[14])/(1+exp(fix4[1]+fix4[9]+fix4[14]))*100
+				deltaMethod(m1,"exp(x1+x5+x9+x14)/(1+exp(x1+x9+x14))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 
 			# cat 2 - CHE: open-list candidate for the National Council
 			
 				# outside of campaign season
-				exp(fix4[1]+fix4[10]+fix4[13])/(1+exp(fix4[1]+fix4[10]+fix4[13]))*100
+				exp(fix4[1]+fix4[10]+fix4[8])/(1+exp(fix4[1]+fix4[10]+fix4[8]))*100
 				deltaMethod(m1,"exp(x1+x10+x13)/(1+exp(x1+x10+x13))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
@@ -1550,12 +1672,12 @@ ls()
 			# cat 3 - CHE open-list candidate for the NC and also first-past-the-post candidate for the COS
 			
 				# outside of campaign season
-				exp(fix4[1]+fix4[10]+fix4[12])/(1+exp(fix4[1]+fix4[10]+fix4[12]))*100
-				deltaMethod(m1,"exp(x1+x10+x12)/(1+exp(x1+x10+x12))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[10]+fix4[7])/(1+exp(fix4[1]+fix4[10]+fix4[7]))*100
+				deltaMethod(m1,"exp(x1+x10+x7)/(1+exp(x1+x10+x7))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[10]+fix4[5]+fix4[12]+fix4[7])/(1+exp(fix4[1]+fix4[10]+fix4[12]+fix4[7]))*100
-				deltaMethod(m1,"exp(x1+x10+x5+x12+x7)/(1+exp(x1+x10+x12+x7))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[10]+fix4[5]+fix4[7]+fix4[12])/(1+exp(fix4[1]+fix4[10]+fix4[7]+fix4[12]))*100
+				deltaMethod(m1,"exp(x1+x10+x5+x7+x12)/(1+exp(x1+x10+x7+x12))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 		
 			# cat 4 - DEU: mixed candidates
 
@@ -1564,18 +1686,18 @@ ls()
 				deltaMethod(m1,"exp(x1)/(1+exp(x1))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 				
 				# during campaign season
-				exp(fix4[1]+fix4[5]+fix4[5])/(1+exp(fix4[1]+fix4[5]))*100 
+				exp(fix4[1]+fix4[5])/(1+exp(fix4[1]+fix4[5]))*100 
 				deltaMethod(m1,"exp(x1+x5)/(1+exp(x1+x5))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 			# cat 5 - DEU: (closed) list candidate
 			
 				# outside of campaign season
-				exp(fix4[1]+fix4[11])/(1+exp(fix4[1]+fix4[11]))*100
-				deltaMethod(m1,"exp(x1+x11)/(1+exp(x1+x11))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[6])/(1+exp(fix4[1]+fix4[6]))*100
+				deltaMethod(m1,"exp(x1+x6)/(1+exp(x1+x6))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[5]+fix4[11]+fix4[6])/(1+exp(fix4[1]+fix4[11]+fix4[6]))*100
-				deltaMethod(m1,"exp(x1+x5+x11+x6)/(1+exp(x1+x11+x6))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[5]+fix4[6]+fix4[11])/(1+exp(fix4[1]+fix4[6]+fix4[11]))*100
+				deltaMethod(m1,"exp(x1+x5+x6+x11)/(1+exp(x1+x6+x11))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 		# OK, lets add a model with campaign_season only as well.
 			m_mp_campaignsonly  <- glmer(BinomialResponseMatrixRED~ #year_cent + # pers_loc~ year_cent +
