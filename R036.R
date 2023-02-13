@@ -1257,7 +1257,7 @@ ls()
 				# first check if this indeed the structure?
 				table(TEMP$candidature_type,TEMP$country) # yes it is
 		
-				# set all swiss cases to candidature_type : list
+				# set all swiss cases to candidature_type : list -- note that this is risky! People might not even be running (you are now trying to deal with this b.t.w., see below!)
 				table(TEMP$candidature_type)
 				TEMP$candidature_type <- ifelse(TEMP$country == "CH","L",TEMP$candidature_type)
 				table(TEMP$candidature_type)
@@ -1332,7 +1332,72 @@ ls()
 				#TEMP$SRcan <- ifelse(TEMP$pers_id %in% ELENBUSR$pers_id,"ran for SR at some point","did not run for SR at some point")
 				#table(TEMP$SRcan)
 
-	# step 5: put it al together
+	# step 5: we would also like to know if an MP even ran for the upcomming election, because if not, they also have a very low incentive (we could try this as a seperate category, or just make this the 'lowest' together with german district canddiates
+
+		nextparliament <- function(currentparliament)
+		{
+			# query this from PARL
+			idofthenextparliament <- PARL$next_parliament[which(PARL$parliament_id == currentparliament)]
+			return(idofthenextparliament)
+		}
+		# check
+		nextparliament("CH_NT-NR_2003")
+
+		didIrunforthenextelection <- function(local_pers_id,local_current_parliament_id)
+		{
+		# default is nope
+		IRanbBolean <- FALSE
+		
+		# check if you ran for this one!? By seeing is any data is returned
+		MEINELEN <- ELENBU[which(ELENBU$parliament_id == nextparliament(local_current_parliament_id) & ELENBU$pers_id == local_pers_id),]
+		
+		# set the result
+		if(nrow(MEINELEN) > 0){
+		IRanbBolean <- TRUE
+		}
+		
+		return(IRanbBolean)
+		}
+		
+		didIrunforthenextSRelection <- function(local_pers_id,local_current_parliament_id)
+		{
+		# default is nope
+		IRanbBolean <- FALSE
+		
+		# equivalent pariament ID of the SR election
+		SR_local_current_parliament_id <- gsub("CH_NT-NR", "CH_NT-SR", local_current_parliament_id)
+		
+		# check if you ran for this one!? By seeing is any data is returned
+		MEINELEN <- ELENBU[which(ELENBU$parliament_id == nextparliament(SR_local_current_parliament_id) & ELENBU$pers_id == local_pers_id),]
+		
+		# set the result
+		if(nrow(MEINELEN) > 0){
+		IRanbBolean <- TRUE
+		}
+		
+		return(IRanbBolean)
+		}
+
+		# check
+		didIrunforthenextelection("CH_Addor_Jean_1964","CH_NT-NR_2011")
+		didIrunforthenextelection("CH_Addor_Jean_1964","CH_NT-NR_2015")
+		
+		# run this for everbody
+		resvec <- logical(nrow(TEMP))
+		pb <- txtProgressBar(min = 1, max = nrow(TEMP), style = 3)
+		for(i in 1:nrow(TEMP))
+		{
+			resvec[i] <- didIrunforthenextelection(TEMP$pers_id[i],TEMP$parliament_id[i]) | didIrunforthenextSRelection(TEMP$pers_id[i],TEMP$parliament_id[i])
+			setTxtProgressBar(pb, i)
+		}
+		close(pb)
+		table(resvec)
+		table(is.na(resvec))
+		
+		TEMP$ranatnextelection <- resvec
+		table(TEMP$ranatnextelection) # OK, so really A LOT of people that did not run!
+
+	# step 6: put it al together
 		
 		# default is NA
 		TEMP$persvoteins <- NA
@@ -1357,8 +1422,36 @@ ls()
 		TEMP$persvoteins <- ifelse((TEMP$country == "DE" & TEMP$candidature_type == "L"),"cat 5 (lowest incentive)- DE closed list",TEMP$persvoteins)
 		table(TEMP$persvoteins)
 		
+		# cat 6 - Did not run in the upcomming elections! (both countries) # OK, so this took away a lot of CH cases from the cat 2 - CH open list category!
+		TEMP$persvoteins <- ifelse(!TEMP$ranatnextelection,"cat 6 (no incentive)- did not run in the upcomming election",TEMP$persvoteins)
+		table(TEMP$persvoteins)
+		
+			# do the numbers from the last category seem reliable?
+			# Create the two-dimensional table
+				tab <- table(TEMP$ranatnextelection, TEMP$parliament_id)
+				tab
+				
+				# Obtain the column percentages
+				col_perc <- prop.table(tab, 2) * 100
+
+				# Display the result
+				col_perc
+				
+				# the DE_NT-BT_2005 observation is suspicious, althought this is probaly only very few people?
+				CHEK <- TEMP[which(TEMP$parliament_id == "DE_NT-BT_2005"),]
+				nrow(CHEK)
+				table(CHEK$pers_id) # still quite a couple of people, did really all of them expect one run in the next election >> you check about 10 of them manually, all but one indeed ran in the upcomming election. This makes sense, otherwise they should not be in the sample?
+				
+				# above is true, only way that CH_NT-NR_2007 and DE_NT-BT_2005 MPS can be in the sample but not run in the next election is if they 'skipped' an election (not through, they could just be there at the end).. let's check this.
+				CHEK2 <- TEMP[which(TEMP$parliament_id == "CH_NT-NR_2007" & !TEMP$ranatnextelection),]
+				nrow(CHEK2)
+				table(CHEK2$pers_id)
+				# CH_Berberat_Didier_1956 ran for the SR in 2011 but not the NR
+				# CH_Berset_Alain_1972 only ever ran for the SR
+				# CH_Gobbi_Norman_1977 should not be in our own data, according to our specified selection criteria? -- well, that is not true, he was in parliament on basis of his 2007 election.
+		
 		# any NA left?
-		table(is.na(TEMP$persvoteins)) # yes, about 3600 -- looks like these are all probalby recent cases where the candidature_type cannot be detirmed iun the upcomming elections yet
+		table(is.na(TEMP$persvoteins)) # OK, so note that indeed if 'cat 6' is included here! We have a categorisation for all people. 'all' that is left now, is to get ELEN (like) data for 2019 for Switserland in! Because they
 			# inspect
 			NASLEFT <- TEMP[which(is.na(TEMP$persvoteins)),]
 			head(NASLEFT)
@@ -1431,7 +1524,10 @@ ls()
 			mean(DT_DROPPED$pers_loc) # so yes indeed, dropped case all have relatively low percentage of local cues
 			
 			table(DT$country) 
-			table(DT_RED$country) # OK, so actual all the dropped cases are in Germany, does that make sense?
+			table(DT_RED$country) # OK, so actual all the dropped cases are in Germany, does that make sense? ---
+				# well, this is not the Germany 2021 election I think, because that campaign season is not even in the data! Maybe it still is there....
+				# German 2017 election are in ELEN (just checked), so that cannot be it?! -- these are then probably just the people that did not run again! Let's include them as low(est?) incentive cases.
+				# for CH this is not checked! So, lets add a new variable for this.
 		
 			# need an updated BinomialResponseMatrix for this as well ofcourse
 				
