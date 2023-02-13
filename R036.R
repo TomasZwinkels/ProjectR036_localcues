@@ -1247,7 +1247,6 @@ ls()
 		tail(TEMP)
 		
 		# note that quite a lot of cases are lost here, as info for the Swiss 2019 election and the German 2021 election are not in ELEN # Oliver thinks I might be able to get this from a file he shared called 'su-d-17.02.03.02', I am not actually sure, that is just SR elections info, not if the district magnitude is 1, we also need to know what districts people ran in again
-		
 		table(TEMP$candidature_type)
 		summary(TEMP$candidate_votes)
 		
