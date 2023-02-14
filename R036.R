@@ -75,6 +75,7 @@
 	library(car)
 	library(MASS)
 	library(pscl)
+	library(readxl)
 
 substrRight <- function(x, n)
 	{
@@ -1359,6 +1360,16 @@ ls()
 		return(IRanbBolean)
 		}
 		
+		# also here, Oliver his side-data comes in handy
+		SRCAN <- read.xlsx("F:/PolCa/Analysis/R/ProjectR036_localcues/su-d-17.02.03.02.xlsx", sheet = 1)
+		head(SRCAN) 
+		str(SRCAN)
+		nrow(SRCAN)
+		
+		SRCANRED <- SRCAN[which(!is.na(SRCAN$pers_id)),]
+		nrow(SRCANRED)
+		
+		
 		didIrunforthenextSRelection <- function(local_pers_id,local_current_parliament_id)
 		{
 		# default is nope
@@ -1367,11 +1378,15 @@ ls()
 		# equivalent pariament ID of the SR election
 		SR_local_current_parliament_id <- gsub("CH_NT-NR", "CH_NT-SR", local_current_parliament_id)
 		
-		# check if you ran for this one!? By seeing is any data is returned
+		# check if you ran for this one in PCC!? By seeing is any data is returned
 		MEINELEN <- ELENBU[which(ELENBU$parliament_id == nextparliament(SR_local_current_parliament_id) & ELENBU$pers_id == local_pers_id),]
 		
+		# check if you occur for this year in Oliver his file
+		upcommingyear <- as.numeric(str_extract(nextparliament(SR_local_current_parliament_id), "\\d{4}"))
+		OLILO <- SRCANRED[which(SRCANRED$Jahr == upcommingyear & SRCANRED$pers_id == local_pers_id),]
+		
 		# set the result
-		if(nrow(MEINELEN) > 0){
+		if(nrow(MEINELEN) > 0 | nrow(OLILO) > 0){
 		IRanbBolean <- TRUE
 		}
 		
@@ -1382,12 +1397,22 @@ ls()
 		didIrunforthenextelection("CH_Addor_Jean_1964","CH_NT-NR_2011")
 		didIrunforthenextelection("CH_Addor_Jean_1964","CH_NT-NR_2015")
 		
-		# run this for everbody
+	  # step 5.1: get a dummy that indicates if this was somebody that ran in the CH 2019 NR elections
+		NRCAND19 <- read.xlsx("F:/PolCa/Analysis/R/ProjectR036_localcues/sd-t-17.02-NRW2019-kandidierende-APPENDIX.xlsx", sheet = 1)
+		head(NRCAND19)        
+
+		TEMP$ranintheCH2019NRelections <- ifelse(TEMP$pers_id %in% NRCAND19$pers_id,"ran in CH 2019 NR","did not run")
+		table(TEMP$ranintheCH2019NRelections)
+		table(TEMP$ranintheCH2019NRelections,TEMP$country)
+		table(TEMP$ranintheCH2019NRelections,TEMP$parliament_id)
+		table(is.na(TEMP$ranintheCH2019NRelections))
+	
+		# run this all together for everbody
 		resvec <- logical(nrow(TEMP))
 		pb <- txtProgressBar(min = 1, max = nrow(TEMP), style = 3)
 		for(i in 1:nrow(TEMP))
 		{
-			resvec[i] <- didIrunforthenextelection(TEMP$pers_id[i],TEMP$parliament_id[i]) | didIrunforthenextSRelection(TEMP$pers_id[i],TEMP$parliament_id[i])
+			resvec[i] <- didIrunforthenextelection(TEMP$pers_id[i],TEMP$parliament_id[i]) | didIrunforthenextSRelection(TEMP$pers_id[i],TEMP$parliament_id[i]) | (TEMP$pers_id[i] %in% NRCAND19$pers_id)
 			setTxtProgressBar(pb, i)
 		}
 		close(pb)
@@ -1396,6 +1421,7 @@ ls()
 		
 		TEMP$ranatnextelection <- resvec
 		table(TEMP$ranatnextelection) # OK, so really A LOT of people that did not run!
+
 
 	# step 6: put it al together
 		
@@ -1410,7 +1436,7 @@ ls()
 		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & !(TEMP$fptp == "fptp")),"cat 2 - CH open list",TEMP$persvoteins) # so note that this is where the candidacy type for all swiss cases is filled in, this is not actually 100% correct, there are false negatives in fptp and SRcan
 		table(TEMP$persvoteins)
 		
-		# cat 3 - CHE open-list candidate for the National Council and has also been at some point first-past-the-post candidate for the Council of States
+		# cat 3 - CHE open-list candidate for the National Council and also was a first-past-the-post candidate for the Council of States
 		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & TEMP$SRcan == "ran for SR in same year"),"cat 3 - CH open list NR and also SR cand",TEMP$persvoteins)
 		table(TEMP$persvoteins)
 		
@@ -1423,7 +1449,7 @@ ls()
 		table(TEMP$persvoteins)
 		
 		# cat 6 - Did not run in the upcomming elections! (both countries) # OK, so this took away a lot of CH cases from the cat 2 - CH open list category!
-		TEMP$persvoteins <- ifelse(!TEMP$ranatnextelection,"cat 6 (no incentive)- did not run in the upcomming election",TEMP$persvoteins)
+		TEMP$persvoteins <- ifelse((!TEMP$ranatnextelection),"cat 6 (no incentive)- did not run in the upcomming election",TEMP$persvoteins)
 		table(TEMP$persvoteins)
 		
 			# do the numbers from the last category seem reliable?
