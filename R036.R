@@ -1463,6 +1463,8 @@ ls()
 				# Display the result
 				col_perc
 				
+				# the DE_NT-BT_2017 classification is not correct, but this is not an issue as the 2021 campaign season is not IN? ---- OR: is it! the cat 6 (no incentive)- did not run in the upcomming election also counts outside of the campaign season!
+				
 				# the DE_NT-BT_2005 observation is suspicious, althought this is probaly only very few people?
 				CHEK <- TEMP[which(TEMP$parliament_id == "DE_NT-BT_2005"),]
 				nrow(CHEK)
