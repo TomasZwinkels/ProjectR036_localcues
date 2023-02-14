@@ -1220,19 +1220,19 @@ ls()
 						")
 		head(ELENBU)
 		
-		# crucially, for current state / campaign season, what matters is the candicacy type at the upcomming election! so, say for say a date in 2012, what matters is the candicacy type for the 2013 election, this means that ELENBU info needs to be matched on the previous parliament.
+		# crucially, for current state / campaign season, what matters is the candicacy type at the upcomming election! 
+		# so, say for say a date in 2012, what matters is the candicacy type for the 2013 election, this means that ELENBU info needs to be matched on the previous parliament. # I do not understand previous here, should it not be next?!
+		# really quite sure that this should be the NEXT parliament.
 		ELENBU <- sqldf("SELECT ELENBU.*, PARL.previous_parliament
 						 FROM ELENBU LEFT JOIN PARL
 						 ON
 						 ELENBU.parliament_id = PARL.parliament_id
-
 						")
 		head(ELENBU)
 		table(ELENBU$previous_parliament)
 		
 			names(DT)
 		
-
 		# step 2: merge in ELEN.candidature_type and ELEN.candidate_votes, new and improved version that combines candidature_type if there are different ones and sums the candidate votes
 			TEMP <- sqldf("SELECT DT.*, GROUP_CONCAT(ELENBU.candidature_type) as candidature_type, SUM(ELENBU.candidate_votes) as candidate_votes, ELENBU.list_id
 						FROM DT LEFT JOIN ELENBU
@@ -1267,6 +1267,9 @@ ls()
 				TEMP$candidature_type <- gsub("LD,LD", "LD", TEMP$candidature_type)
 				table(TEMP$candidature_type)
 				table(TEMP$candidature_type,TEMP$country)
+			
+			# also, a little work around is nessary to deal with cases in DE for the 2021 election!
+				
 		
 		# step 4: use this info, together with some other bits to develop an ordinal 'incentive to cultivate a personal vote' scale as desribed by Oliver below.
 					# from the Overleaf doc:
@@ -1381,7 +1384,7 @@ ls()
 		# check if you ran for this one in PCC!? By seeing is any data is returned
 		MEINELEN <- ELENBU[which(ELENBU$parliament_id == nextparliament(SR_local_current_parliament_id) & ELENBU$pers_id == local_pers_id),]
 		
-		# check if you occur for this year in Oliver his file
+		# check if you occur for this year in Oliver his SR file
 		upcommingyear <- as.numeric(str_extract(nextparliament(SR_local_current_parliament_id), "\\d{4}"))
 		OLILO <- SRCANRED[which(SRCANRED$Jahr == upcommingyear & SRCANRED$pers_id == local_pers_id),]
 		
@@ -1398,21 +1401,32 @@ ls()
 		didIrunforthenextelection("CH_Addor_Jean_1964","CH_NT-NR_2015")
 		
 	  # step 5.1: get a dummy that indicates if this was somebody that ran in the CH 2019 NR elections
-		NRCAND19 <- read.xlsx("F:/PolCa/Analysis/R/ProjectR036_localcues/sd-t-17.02-NRW2019-kandidierende-APPENDIX.xlsx", sheet = 1)
-		head(NRCAND19)        
+		
+		# for CH NR 2019
+			NRCAND19 <- read.xlsx("F:/PolCa/Analysis/R/ProjectR036_localcues/sd-t-17.02-NRW2019-kandidierende-APPENDIX.xlsx", sheet = 1)
+			head(NRCAND19)        
 
-		TEMP$ranintheCH2019NRelections <- ifelse(TEMP$pers_id %in% NRCAND19$pers_id,"ran in CH 2019 NR","did not run")
-		table(TEMP$ranintheCH2019NRelections)
-		table(TEMP$ranintheCH2019NRelections,TEMP$country)
-		table(TEMP$ranintheCH2019NRelections,TEMP$parliament_id)
-		table(is.na(TEMP$ranintheCH2019NRelections))
+			TEMP$ranintheCH2019NRelections <- ifelse(TEMP$pers_id %in% NRCAND19$pers_id,"ran in CH 2019 NR","did not run")
+			table(TEMP$ranintheCH2019NRelections)
+			table(TEMP$ranintheCH2019NRelections,TEMP$country)
+			table(TEMP$ranintheCH2019NRelections,TEMP$parliament_id)
+			table(is.na(TEMP$ranintheCH2019NRelections))
+		
+		# for DE BT 2021 (Please note that here for sure there will be false negatives, because no attemp has been made to match 'almost matches' 
+			BTCAND21 <- read.xlsx("F:/PolCa/Analysis/R/ProjectR036_localcues/DEU_2021.xlsx", sheet = 1)
+			head(BTCAND21) 
 	
 		# run this all together for everbody
 		resvec <- logical(nrow(TEMP))
 		pb <- txtProgressBar(min = 1, max = nrow(TEMP), style = 3)
 		for(i in 1:nrow(TEMP))
 		{
-			resvec[i] <- didIrunforthenextelection(TEMP$pers_id[i],TEMP$parliament_id[i]) | didIrunforthenextSRelection(TEMP$pers_id[i],TEMP$parliament_id[i]) | (TEMP$pers_id[i] %in% NRCAND19$pers_id)
+			# first term here is: did you run for the next lower house election according to PCC
+			# second term here is: did you run for the next upper house election according to PCC
+			# third term here is: are you in the CH_NT-NR_2015 and did you run for the next NR election (by checking if you occur in the file Oliver provided anywhere)
+			# the fourth term is the same as the third, but then for Germany for the 2021 elections
+			
+			resvec[i] <- didIrunforthenextelection(TEMP$pers_id[i],TEMP$parliament_id[i]) | didIrunforthenextSRelection(TEMP$pers_id[i],TEMP$parliament_id[i]) | (TEMP$parliament_id[i] == "CH_NT-NR_2015" & (TEMP$pers_id[i] %in% NRCAND19$pers_id)) | (TEMP$parliament_id[i] == "DE_NT-BT_2017" & (TEMP$pers_id[i] %in% BTCAND21$pers_id))
 			setTxtProgressBar(pb, i)
 		}
 		close(pb)
@@ -1421,7 +1435,6 @@ ls()
 		
 		TEMP$ranatnextelection <- resvec
 		table(TEMP$ranatnextelection) # OK, so really A LOT of people that did not run!
-
 
 	# step 6: put it al together
 		
@@ -1462,6 +1475,8 @@ ls()
 
 				# Display the result
 				col_perc
+				
+				# we see that the percentage for the CH_NT-NR_2015 that ran is still relatively low! - I think this might be because of false negatives in the pers_id matches?
 				
 				# the DE_NT-BT_2017 classification is not correct, but this is not an issue as the 2021 campaign season is not IN? ---- OR: is it! the cat 6 (no incentive)- did not run in the upcomming election also counts outside of the campaign season!
 				
