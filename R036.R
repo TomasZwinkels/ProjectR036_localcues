@@ -1223,23 +1223,25 @@ ls()
 		# crucially, for current state / campaign season, what matters is the candicacy type at the upcomming election! 
 		# so, say for say a date in 2012, what matters is the candicacy type for the 2013 election, this means that ELENBU info needs to be matched on the previous parliament. # I do not understand previous here, should it not be next?!
 		# really quite sure that this should be the NEXT parliament.
-		ELENBU <- sqldf("SELECT ELENBU.*, PARL.previous_parliament
-						 FROM ELENBU LEFT JOIN PARL
+		
+		# OK, so say that in DT the parliament is CH_NT-NR_2011, then we go to PARL, that tell us that the next parliament is CH_NT-NR_2015 -- it indeed makes much more sense here to get 'next_parliament' into DT!
+		DT <- sqldf("SELECT DT.*, PARL.next_parliament
+						 FROM DT LEFT JOIN PARL
 						 ON
-						 ELENBU.parliament_id = PARL.parliament_id
+						 DT.parliament_id = PARL.parliament_id
 						")
-		head(ELENBU)
-		table(ELENBU$previous_parliament)
+		head(DT)
+		table(DT$next_parliament)
 		
 			names(DT)
-		
+		# OK, and here, we take DT as leading (so CH_NT-NR_2011 again), and for ELENBU, we would like to get the numbers for CH_NT-NR_2015
 		# step 2: merge in ELEN.candidature_type and ELEN.candidate_votes, new and improved version that combines candidature_type if there are different ones and sums the candidate votes
 			TEMP <- sqldf("SELECT DT.*, GROUP_CONCAT(ELENBU.candidature_type) as candidature_type, SUM(ELENBU.candidate_votes) as candidate_votes, ELENBU.list_id
 						FROM DT LEFT JOIN ELENBU
 						ON 
 						DT.pers_id = ELENBU.pers_id
 						AND
-						DT.parliament_id = ELENBU.previous_parliament
+						DT.next_parliament = ELENBU.parliament_id
 						GROUP BY DT.pers_id, DT.month
 					 ")
 		nrow(DT)
@@ -1250,6 +1252,59 @@ ls()
 		# note that quite a lot of cases are lost here, as info for the Swiss 2019 election and the German 2021 election are not in ELEN # Oliver thinks I might be able to get this from a file he shared called 'su-d-17.02.03.02', I am not actually sure, that is just SR elections info, not if the district magnitude is 1, we also need to know what districts people ran in again
 		table(TEMP$candidature_type)
 		summary(TEMP$candidate_votes)
+		
+		# for the German 2021 elections, there is this other file that can be used for this
+		
+			# for DE BT 2021 (Please note that here for sure there will be false negatives, because no attemp has been made to match 'almost matches' 
+				BTCAND21 <- read.xlsx("F:/PolCa/Analysis/R/ProjectR036_localcues/DEU_2021.xlsx", sheet = 1)
+				head(BTCAND21)
+				
+				# make a new column that labels the candicature types
+				BTCAND21$cantypeworkaround <- NA
+				
+				BTCAND21$cantypeworkaround[BTCAND21$Gebietsart == "Land"] <- "L"
+				BTCAND21$cantypeworkaround[BTCAND21$Gebietsart == "Wahlkreis"] <- "D"
+				table(BTCAND21$cantypeworkaround)
+				table(is.na(BTCAND21$cantypeworkaround))
+				
+				BTCAND21COMB <- sqldf("SELECT pers_id, GROUP_CONCAT(cantypeworkaround) as combined_cantypeworkaround
+									   FROM BTCAND21 
+									   GROUP BY pers_id
+									  ")
+				nrow(BTCAND21COMB)
+				table(BTCAND21COMB$combined_cantypeworkaround)
+				
+				# there is a weird case here, due to double occuring names
+				BTCAND21COMB[which(BTCAND21COMB$combined_cantypeworkaround == "D,D,L"),]
+				# is this case even relevant for us?
+				TEMP[which(TEMP$pers_id == "DE_Weber_Andreas_1979"),] # no its not
+				
+				BTCAND21COMB$combined_cantypeworkaround <- as.character(BTCAND21COMB$combined_cantypeworkaround)
+				table(BTCAND21COMB$combined_cantypeworkaround)
+				
+				BTCAND21COMB$combined_cantypeworkaround[which(BTCAND21COMB$combined_cantypeworkaround == "D,L")] <- "LD"
+				table(BTCAND21COMB$combined_cantypeworkaround)
+				
+				
+			
+			OK, so lets merge this very specific info into TEMP so it can be used to overwrite NA values when appropriate
+				nrow(TEMP)
+				TEMP <- sqldf("SELECT TEMP.*, BTCAND21COMB.combined_cantypeworkaround as candidature_type_inDE2021election
+						FROM TEMP LEFT JOIN BTCAND21COMB
+						ON 
+						TEMP.pers_id = BTCAND21COMB.pers_id
+					 ")
+				nrow(TEMP)
+				table(TEMP$candidature_type_inDE2021election) # note how this can be more indeed, as this info was also added to observations of the same people for other elections
+				table(is.na(TEMP$candidature_type_inDE2021election))
+				table(TEMP$candidature_type_inDE2021election,TEMP$parliament_id)
+
+			# OK, so only for the very specific cases of observations in the DE_NT-BT_2017 parliament, we want to set the candidature_type var with these values
+			
+				table(TEMP$parliament_id,is.na(TEMP$candidature_type))
+				
+				table(TEMP$candidature_type_inDE2021election)
+				ifelse(TEMP$parliament_id == "DE_NT-BT_2017"),TEMP$candidature_type_inDE2021election,TEMP$candidature_type)
 		
 		# step 3: clean up the candidature_type variable
 		
