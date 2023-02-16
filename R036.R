@@ -1240,22 +1240,47 @@ ls()
 		
 		# OK, and here, we take DT as leading (so CH_NT-NR_2011 again), and for ELENBU, we would like to get the numbers for CH_NT-NR_2015
 		# step 2: merge in ELEN.candidature_type and ELEN.candidate_votes, new and improved version that combines candidature_type if there are different ones and sums the candidate votes
-			TEMP <- sqldf("SELECT DT.*, GROUP_CONCAT(ELENBU.candidature_type) as candidature_type, SUM(ELENBU.candidate_votes) as candidate_votes, ELENBU.list_id
-						FROM DT LEFT JOIN ELENBU
-						ON 
-						DT.pers_id = ELENBU.pers_id
-						AND
-						DT.next_parliament = ELENBU.parliament_id
-						GROUP BY DT.pers_id, DT.month
-					 ")
-		nrow(DT)
-		nrow(TEMP)
-		head(TEMP)
-		tail(TEMP)
+			# for the next election
+				TEMP <- sqldf("SELECT DT.*, GROUP_CONCAT(ELENBU.candidature_type) as candidature_type_nextelec , SUM(ELENBU.candidate_votes) as candidate_votes_nextelec, ELENBU.list_id
+							FROM DT LEFT JOIN ELENBU
+							ON 
+							DT.pers_id = ELENBU.pers_id
+							AND
+							DT.next_parliament = ELENBU.parliament_id
+							GROUP BY DT.pers_id, DT.month
+						 ")
+			nrow(DT)
+			nrow(TEMP)
+			head(TEMP)
+			tail(TEMP)
+				
+			# for the last election
+				TEMP <- sqldf("SELECT TEMP.*, GROUP_CONCAT(ELENBU.candidature_type) as candidature_type_lastelec , SUM(ELENBU.candidate_votes) as candidate_votes_lastelec, ELENBU.list_id
+							FROM TEMP LEFT JOIN ELENBU
+							ON 
+							TEMP.pers_id = ELENBU.pers_id
+							AND
+							TEMP.parliament_id = ELENBU.parliament_id
+							GROUP BY TEMP.pers_id, TEMP.month
+						 ")
+			nrow(TEMP)
+			head(TEMP)
+			tail(TEMP)
+		
 		
 		# note that quite a lot of cases are lost here, as info for the Swiss 2019 election and the German 2021 election are not in ELEN # Oliver provided me with some files that I can get this info from. This info is loaded for DE 2021 below, the CH info is not needed, as all of them are of the list type anyways (unless they are running for the SR, but that I will solve somewhere else in a moment.
 		table(TEMP$candidature_type)
 		summary(TEMP$candidate_votes)
+		
+		# dealing with the issue of what to do with the candicature type value when somebody is not running in the next election (issue #1 on github)
+		
+				table(TEMP$candidature_type_nextelec,TEMP$parliament_id)
+				table(is.na(TEMP$candidature_type_nextelec),TEMP$parliament_id)
+		
+				TEMP$candidature_type <- ifelse(is.na(TEMP$candidature_type_nextelec),TEMP$candidature_type_lastelec,TEMP$candidature_type_nextelec)
+				
+				table(TEMP$candidature_type,TEMP$parliament_id)
+				table(is.na(TEMP$candidature_type),TEMP$parliament_id)
 		
 		# for the German 2021 elections, there is this other file that can be used for this
 		
@@ -1304,10 +1329,10 @@ ls()
 
 			# OK, so only for the very specific cases of observations in the DE_NT-BT_2017 parliament, we want to set the candidature_type var with these values
 			
-				table(TEMP$parliament_id,is.na(TEMP$candidature_type)) # OK, so another issue does occur here now. What to do with the candicature type value when somebody is not running in the next election.
+				table(TEMP$parliament_id,is.na(TEMP$candidature_type)) 
 				
 				table(TEMP$candidature_type_inDE2021election)
-				TEMP$candidature_type <- ifelse(TEMP$parliament_id == "DE_NT-BT_2017",TEMP$candidature_type_inDE2021election,TEMP$candidature_type)
+				TEMP$candidature_type <- ifelse(TEMP$parliament_id == "DE_NT-BT_2017",TEMP$candidature_type_inDE2021election,TEMP$candidature_type) # how about people that did not even run for the 2021 election..
 				table(TEMP$parliament_id,is.na(TEMP$candidature_type))
 		
 		# step 3: clean up the candidature_type variable
