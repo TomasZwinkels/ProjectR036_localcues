@@ -1255,7 +1255,7 @@ ls()
 			tail(TEMP)
 				
 			# for the last election
-				TEMP <- sqldf("SELECT TEMP.*, GROUP_CONCAT(ELENBU.candidature_type) as candidature_type_lastelec , SUM(ELENBU.candidate_votes) as candidate_votes_lastelec, ELENBU.list_id
+				TEMP <- sqldf("SELECT TEMP.*, GROUP_CONCAT(ELENBU.candidature_type) as candidature_type_lastelec , SUM(ELENBU.candidate_votes) as candidate_votes_lastelec
 							FROM TEMP LEFT JOIN ELENBU
 							ON 
 							TEMP.pers_id = ELENBU.pers_id
@@ -1269,18 +1269,9 @@ ls()
 		
 		
 		# note that quite a lot of cases are lost here, as info for the Swiss 2019 election and the German 2021 election are not in ELEN # Oliver provided me with some files that I can get this info from. This info is loaded for DE 2021 below, the CH info is not needed, as all of them are of the list type anyways (unless they are running for the SR, but that I will solve somewhere else in a moment.
-		table(TEMP$candidature_type)
+		table(TEMP$candidature_type_nextelec)
+		table(is.na(TEMP$candidature_type_nextelec),TEMP$parliament_id)
 		summary(TEMP$candidate_votes)
-		
-		# dealing with the issue of what to do with the candicature type value when somebody is not running in the next election (issue #1 on github)
-		
-				table(TEMP$candidature_type_nextelec,TEMP$parliament_id)
-				table(is.na(TEMP$candidature_type_nextelec),TEMP$parliament_id)
-		
-				TEMP$candidature_type <- ifelse(is.na(TEMP$candidature_type_nextelec),TEMP$candidature_type_lastelec,TEMP$candidature_type_nextelec)
-				
-				table(TEMP$candidature_type,TEMP$parliament_id)
-				table(is.na(TEMP$candidature_type),TEMP$parliament_id)
 		
 		# for the German 2021 elections, there is this other file that can be used for this
 		
@@ -1315,7 +1306,7 @@ ls()
 				table(BTCAND21COMB$combined_cantypeworkaround)
 				
 			
-			OK, so lets merge this very specific info into TEMP so it can be used to overwrite NA values when appropriate
+			# OK, so lets merge this very specific info into TEMP so it can be used to overwrite NA values when appropriate
 				nrow(TEMP)
 				TEMP <- sqldf("SELECT TEMP.*, BTCAND21COMB.combined_cantypeworkaround as candidature_type_inDE2021election
 						FROM TEMP LEFT JOIN BTCAND21COMB
@@ -1329,11 +1320,21 @@ ls()
 
 			# OK, so only for the very specific cases of observations in the DE_NT-BT_2017 parliament, we want to set the candidature_type var with these values
 			
-				table(TEMP$parliament_id,is.na(TEMP$candidature_type)) 
+				table(TEMP$parliament_id,is.na(TEMP$candidature_type_nextelec)) 
 				
 				table(TEMP$candidature_type_inDE2021election)
-				TEMP$candidature_type <- ifelse(TEMP$parliament_id == "DE_NT-BT_2017",TEMP$candidature_type_inDE2021election,TEMP$candidature_type) # how about people that did not even run for the 2021 election..
+				TEMP$candidature_type <- ifelse(TEMP$parliament_id == "DE_NT-BT_2017",TEMP$candidature_type_inDE2021election,TEMP$candidature_type_nextelec) # how about people that did not even run for the 2021 election..
 				table(TEMP$parliament_id,is.na(TEMP$candidature_type))
+		
+		# dealing with the issue of what to do with the candicature type value when somebody is not running in the next election (issue #1 on github)
+		
+				table(TEMP$candidature_type,TEMP$parliament_id)
+				table(is.na(TEMP$candidature_type),TEMP$parliament_id)
+		
+				TEMP$candidature_type <- ifelse(is.na(TEMP$candidature_type),TEMP$candidature_type_lastelec,TEMP$candidature_type)
+				
+				table(TEMP$candidature_type,TEMP$parliament_id)
+				table(is.na(TEMP$candidature_type),TEMP$parliament_id) # OK, so no more NA left for DE.
 		
 		# step 3: clean up the candidature_type variable
 		
