@@ -1224,16 +1224,20 @@ ls()
 		# so, say for say a date in 2012, what matters is the candicacy type for the 2013 election, this means that ELENBU info needs to be matched on the previous parliament. # I do not understand previous here, should it not be next?!
 		# really quite sure that this should be the NEXT parliament.
 		
-		# OK, so say that in DT the parliament is CH_NT-NR_2011, then we go to PARL, that tell us that the next parliament is CH_NT-NR_2015 -- it indeed makes much more sense here to get 'next_parliament' into DT!
-		DT <- sqldf("SELECT DT.*, PARL.next_parliament
-						 FROM DT LEFT JOIN PARL
-						 ON
-						 DT.parliament_id = PARL.parliament_id
-						")
-		head(DT)
-		table(DT$next_parliament)
+		# OK, so say that in DT the parliament is CH_NT-NR_2011, then we go to PARL, that tell us that the next parliament is CH_NT-NR_2015 -- it indeed makes much more sense here to get 'next_parliament' into DT! -- already exists in DT! so this can go I think
 		
-			names(DT)
+	#	table(DT$parliament_id)
+		
+	#	DT <- sqldf("SELECT DT.*, PARL.next_parliament
+	#					 FROM DT LEFT JOIN PARL
+	#					 ON
+	#					 DT.parliament_id = PARL.parliament_id
+	#					")
+	#	head(DT)
+	#	table(DT$next_parliament)
+	#	table(is.na(DT$next_parliament))
+	#	table(DT$parliament_id,is.na(DT$next_parliament))
+		
 		# OK, and here, we take DT as leading (so CH_NT-NR_2011 again), and for ELENBU, we would like to get the numbers for CH_NT-NR_2015
 		# step 2: merge in ELEN.candidature_type and ELEN.candidate_votes, new and improved version that combines candidature_type if there are different ones and sums the candidate votes
 			TEMP <- sqldf("SELECT DT.*, GROUP_CONCAT(ELENBU.candidature_type) as candidature_type, SUM(ELENBU.candidate_votes) as candidate_votes, ELENBU.list_id
@@ -1249,7 +1253,7 @@ ls()
 		head(TEMP)
 		tail(TEMP)
 		
-		# note that quite a lot of cases are lost here, as info for the Swiss 2019 election and the German 2021 election are not in ELEN # Oliver thinks I might be able to get this from a file he shared called 'su-d-17.02.03.02', I am not actually sure, that is just SR elections info, not if the district magnitude is 1, we also need to know what districts people ran in again
+		# note that quite a lot of cases are lost here, as info for the Swiss 2019 election and the German 2021 election are not in ELEN # Oliver provided me with some files that I can get this info from. This info is loaded for DE 2021 below, the CH info is not needed, as all of them are of the list type anyways (unless they are running for the SR, but that I will solve somewhere else in a moment.
 		table(TEMP$candidature_type)
 		summary(TEMP$candidate_votes)
 		
@@ -1285,7 +1289,6 @@ ls()
 				BTCAND21COMB$combined_cantypeworkaround[which(BTCAND21COMB$combined_cantypeworkaround == "D,L")] <- "LD"
 				table(BTCAND21COMB$combined_cantypeworkaround)
 				
-				
 			
 			OK, so lets merge this very specific info into TEMP so it can be used to overwrite NA values when appropriate
 				nrow(TEMP)
@@ -1301,10 +1304,11 @@ ls()
 
 			# OK, so only for the very specific cases of observations in the DE_NT-BT_2017 parliament, we want to set the candidature_type var with these values
 			
-				table(TEMP$parliament_id,is.na(TEMP$candidature_type))
+				table(TEMP$parliament_id,is.na(TEMP$candidature_type)) # OK, so another issue does occur here now. What to do with the candicature type value when somebody is not running in the next election.
 				
 				table(TEMP$candidature_type_inDE2021election)
-				ifelse(TEMP$parliament_id == "DE_NT-BT_2017"),TEMP$candidature_type_inDE2021election,TEMP$candidature_type)
+				TEMP$candidature_type <- ifelse(TEMP$parliament_id == "DE_NT-BT_2017",TEMP$candidature_type_inDE2021election,TEMP$candidature_type)
+				table(TEMP$parliament_id,is.na(TEMP$candidature_type))
 		
 		# step 3: clean up the candidature_type variable
 		
