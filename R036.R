@@ -1352,9 +1352,7 @@ ls()
 				TEMP$candidature_type <- gsub("LD,LD", "LD", TEMP$candidature_type)
 				table(TEMP$candidature_type)
 				table(TEMP$candidature_type,TEMP$country)
-			
-			# also, a little work around is nessary to deal with cases in DE for the 2021 election!
-				
+				table(is.na(TEMP$candidature_type),TEMP$parliament_id) # no more NAs here now!	
 		
 		# step 4: use this info, together with some other bits to develop an ordinal 'incentive to cultivate a personal vote' scale as desribed by Oliver below.
 					# from the Overleaf doc:
@@ -1395,6 +1393,17 @@ ls()
 				# ELLI has CH_NT-SR_1959 like entries in the parliament_id, this is not matched to a person yet, this pers_id is however in ELEN. Question now is, when do we say that you are 'running at the same time'? --> IN GENERAL?!, should all of this not be 'forward looking'? so for the upcomming election?!
 				# so, the thing to check for each pers_id is basically if they occur anywhere for that 'same election' in subsetted list of ELEN entries that are just running for the SR
 				
+				# for this, we first need to get the next_parliament into ELENBU
+				nrow(ELENBU)
+				ELENBU <- sqldf("SELECT ELENBU.*, PARL.next_parliament
+						 FROM ELENBU LEFT JOIN PARL
+						 ON
+						 ELENBU.parliament_id = PARL.parliament_id
+						")
+				head(ELENBU)
+				nrow(ELENBU)
+				
+				
 				# make a reduced SR ELEN frame (only few!)
 				table(grepl("CH_NT-SR_",ELENBU$list_id))
 				
@@ -1403,18 +1412,25 @@ ls()
 				
 				# variable if ran as SR >> at any point in time <<-- could be sharpened later after having a 'when is it the same election' discussion: so the answer here is, there also needs to be a date match!
 				
+					
+				
+				
 					# so, we need a pers_id and year match, so lets just make a var in both dataframes to do so
 					TEMP$pers_id_year <- paste0(TEMP$pers_id,"_",TEMP$year)
 					head(TEMP)
 					
-					ELENBUSR$year <- substrRight(ELENBUSR$parliament_id,4)
+					ELENBUSR$year <- substrRight(ELENBUSR$next_parliament,4) # so, this should again not be the parliament ID, but the next parliament ID?
 					head(ELENBUSR)
 					ELENBUSR$pers_id_year <-  paste0(ELENBUSR$pers_id,"_",ELENBUSR$year)
 					head(ELENBUSR)
 				
 					table(TEMP$pers_id %in% ELENBUSR$pers_id)
-					TEMP$SRcan <- ifelse(TEMP$pers_id_year %in% ELENBUSR$pers_id_year,"ran for SR in same year","did not run for SR in same year")
+					TEMP$SRcan <- ifelse(TEMP$pers_id_year %in% ELENBUSR$pers_id_year,"ran for SR in next election","did not run for SR in next election")
 					table(TEMP$SRcan)
+					
+				# here we also need to add those that ran for the CH in last swiss elections (that are currently not in PCC yet) issue #2 on Github!
+				
+					table(TEMP$SRcan,TEMP$parliament_id)
 				
 				# old BELOW
 				#table(TEMP$pers_id %in% ELENBUSR$pers_id)
@@ -1535,7 +1551,7 @@ ls()
 		table(TEMP$persvoteins)
 		
 		# cat 3 - CHE open-list candidate for the National Council and also was a first-past-the-post candidate for the Council of States
-		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & TEMP$SRcan == "ran for SR in same year"),"cat 3 - CH open list NR and also SR cand",TEMP$persvoteins)
+		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & TEMP$SRcan == "ran for SR in next election"),"cat 3 - CH open list NR and also SR cand",TEMP$persvoteins)
 		table(TEMP$persvoteins)
 		
 		# cat 4 - DEU: mixed candidates
