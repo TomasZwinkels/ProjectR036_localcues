@@ -1426,65 +1426,100 @@ ls()
 				#TEMP$SRcan <- ifelse(TEMP$pers_id %in% ELENBUSR$pers_id,"ran for SR at some point","did not run for SR at some point")
 				#table(TEMP$SRcan)
 
-			### SO... somewhere around here the su-d-17.02.03.02.xlsx data needs to be used to see if somebody ran for the next SR election? ------ this is done below as well though?
+			### SO... somewhere around here the su-d-17.02.03.02.xlsx data needs to be used to see if somebody ran for the next SR election? -- So, this has been reworked now so that the functions from below occur here
 
 			# first thing I will do here is check if the function I made returns generally the same result
-				# note that running this part requires you to manually load the functions 'didIrunforthenextSRelection' and 'nextparliament' below.
+				# note that running this part requires use to move the functions 'didIrunforthenextSRelection' and 'nextparliament' from below.
 				
-				resvec2 <- logical(nrow(TEMP))
-				pb <- txtProgressBar(min = 1, max = nrow(TEMP), style = 3)
-				for(i in 1:nrow(TEMP))
-				{
-					# first term here is: did you run for the next lower house election according to PCC
-					# second term here is: did you run for the next upper house election according to PCC
-					# third term here is: are you in the CH_NT-NR_2015 and did you run for the next NR election (by checking if you occur in the file Oliver provided anywhere)
-					# the fourth term is the same as the third, but then for Germany for the 2021 elections
+				# load the functions (they will be used below as well)
+					nextparliament <- function(currentparliament)
+						{
+							# query this from PARL
+							idofthenextparliament <- PARL$next_parliament[which(PARL$parliament_id == currentparliament)]
+							return(idofthenextparliament)
+						}
+						# check
+						nextparliament("CH_NT-NR_2003")
+						nextparliament("CH_NT-NR_2015")
+				
+						# also for the next function, Oliver his side-data is required
+						SRCANDAT <- read.xlsx("F:/PolCa/Analysis/R/ProjectR036_localcues/su-d-17.02.03.02.xlsx", sheet = 1)
+						# head(SRCANDAT) 
+						nrow(SRCANDAT)
+						SRCANRED <- SRCANDAT[which(!is.na(SRCANDAT$pers_id)),]
+						nrow(SRCANRED)
+						
+					didIrunforthenextSRelection <- function(local_pers_id,local_current_parliament_id)
+					{
+					# default is nope
+					IRanbBolean <- FALSE
 					
-					resvec2[i] <- didIrunforthenextSRelection(TEMP$pers_id[i],TEMP$parliament_id[i])
-					setTxtProgressBar(pb, i)
-				}
-				close(pb)
-				table(resvec2)
-				table(is.na(resvec2))
+					# my country
+					mycountry <- substr(local_pers_id,1,2)
+					
+					# equivalent pariament ID of the SR election
+					SR_local_current_parliament_id <- gsub("CH_NT-NR", "CH_NT-SR", local_current_parliament_id)
+					
+					# check if you ran for this one in PCC!? By seeing is any data is returned
+					MEINELEN <- ELENBU[which(ELENBU$parliament_id == nextparliament(SR_local_current_parliament_id) & ELENBU$pers_id == local_pers_id),]
+					
+					# check if you occur for this year in Oliver his SR file
+					upcommingyear <- as.numeric(str_extract(nextparliament(SR_local_current_parliament_id), "\\d{4}"))
+					OLILO <- SRCANRED[which(SRCANRED$Jahr == upcommingyear & SRCANRED$pers_id == local_pers_id),]
+					
+					# set the result
+					if(mycountry== "CH" & (nrow(MEINELEN) > 0 | nrow(OLILO) > 0)){
+					IRanbBolean <- TRUE
+					}
+					
+					return(IRanbBolean)
+					}
 				
-				TEMP$SRcanfromfunction <-  resvec2
-				table(TEMP$SRcanfromfunction)
+				# call this function in a loop for all cases
+					resvec2 <- logical(nrow(TEMP))
+					pb <- txtProgressBar(min = 1, max = nrow(TEMP), style = 3)
+					for(i in 1:nrow(TEMP))
+					{
+						# first term here is: did you run for the next lower house election according to PCC
+						# second term here is: did you run for the next upper house election according to PCC
+						# third term here is: are you in the CH_NT-NR_2015 and did you run for the next NR election (by checking if you occur in the file Oliver provided anywhere)
+						# the fourth term is the same as the third, but then for Germany for the 2021 elections
+						
+						resvec2[i] <- didIrunforthenextSRelection(TEMP$pers_id[i],TEMP$parliament_id[i])
+						setTxtProgressBar(pb, i)
+					}
+					close(pb)
+					table(resvec2)
+					table(is.na(resvec2))
+					
+					TEMP$SRcanfromfunction <-  resvec2
+					table(TEMP$SRcanfromfunction)
 
-			# checking these against each other
-				table(TEMP$SRcan,TEMP$parliament_id)
-				table(TEMP$SRcanfromfunction,TEMP$parliament_id) # so actually really quite a lot of cases for CH_NT-NR_2015 now, to many?
-				
-				CH15PC <- TEMP[which(TEMP$SRcanfromfunction & TEMP$parliament_id == "CH_NT-NR_2015"),]
-				nrow(CH15PC)
-				length(unique(CH15PC$pers_id))
-				
-				CH11PC <- TEMP[which(TEMP$SRcanfromfunction & TEMP$parliament_id == "CH_NT-NR_2011"),]
-				nrow(CH11PC)
-				length(unique(CH11PC$pers_id)) # OK, so in terms of number of MPs the numbers really don't stand out, so no need to be worried.
-				
-				CH07PC <- TEMP[which(TEMP$SRcanfromfunction & TEMP$parliament_id == "CH_NT-NR_2007"),]
-				nrow(CH07PC)
-				length(unique(CH07PC$pers_id))
+				# checking the function made one against the older one
+					table(TEMP$SRcan,TEMP$parliament_id)
+					table(TEMP$SRcanfromfunction,TEMP$parliament_id) # so actually really quite a lot of cases for CH_NT-NR_2015 now, to many?
+					
+					CH15PC <- TEMP[which(TEMP$SRcanfromfunction & TEMP$parliament_id == "CH_NT-NR_2015"),]
+					nrow(CH15PC)
+					length(unique(CH15PC$pers_id))
+					
+					CH11PC <- TEMP[which(TEMP$SRcanfromfunction & TEMP$parliament_id == "CH_NT-NR_2011"),]
+					nrow(CH11PC)
+					length(unique(CH11PC$pers_id)) # OK, so in terms of number of MPs the numbers really don't stand out, so no need to be worried.
+					
+					CH07PC <- TEMP[which(TEMP$SRcanfromfunction & TEMP$parliament_id == "CH_NT-NR_2007"),]
+					nrow(CH07PC)
+					length(unique(CH07PC$pers_id))
 
-				# so, what we would expect to see here is for SRcanfromfunction more cases as classified as curring for the next SR elections then for SRcan and that SRcan does not identify any positive cases that SRcanfromfunction does not also identify
-				table(TEMP$SRcan)
-				table(TEMP$SRcanfromfunction)
-				table(TEMP$SRcanfromfunction,TEMP$SRcan)
-				# this is indeed what we find, SRcanfromfunction now finds 1838 more 'cases' (don't forget these are MP months).
+					# so, what we would expect to see here is for SRcanfromfunction more cases as classified as curring for the next SR elections then for SRcan and that SRcan does not identify any positive cases that SRcanfromfunction does not also identify
+					table(TEMP$SRcan)
+					table(TEMP$SRcanfromfunction)
+					table(TEMP$SRcanfromfunction,TEMP$SRcan)
+					# this is indeed what we find, SRcanfromfunction now finds 1838 more 'cases' (don't forget these are MP months).
 
 
-	# step 5: we would also like to know if an MP even ran for the upcomming election, because if not, they also have a very low incentive (we could try this as a seperate category, or just make this the 'lowest' together with german district canddiates
-
-		nextparliament <- function(currentparliament)
-		{
-			# query this from PARL
-			idofthenextparliament <- PARL$next_parliament[which(PARL$parliament_id == currentparliament)]
-			return(idofthenextparliament)
-		}
-		# check
-		nextparliament("CH_NT-NR_2003")
-		nextparliament("CH_NT-NR_2015")
-
+	# step 5: we would also like to know if an MP even ran for the upcomming election, because if not, they also have a very low incentive (we should try this as a seperate category, or just make this the 'lowest' (together with german district canddiates? Or maybe by itself?)
+		
 		didIrunforthenextelection <- function(local_pers_id,local_current_parliament_id)
 		{
 		# default is nope
@@ -1500,51 +1535,6 @@ ls()
 		
 		return(IRanbBolean)
 		}
-		
-		# also here, Oliver his side-data comes in handy
-		SRCANDAT <- read.xlsx("F:/PolCa/Analysis/R/ProjectR036_localcues/su-d-17.02.03.02.xlsx", sheet = 1)
-		head(SRCANDAT) 
-		str(SRCANDAT)
-		nrow(SRCANDAT)
-		
-		SRCANRED <- SRCANDAT[which(!is.na(SRCANDAT$pers_id)),]
-		nrow(SRCANRED)
-		
-		# some debugging, why no positive cases from SRcanfromfunction for CH_NT-NR_2015
-		head(TEMP[which(TEMP$parliament_id == "CH_NT-NR_2015"),])		
-		
-		local_pers_id = "CH_Addor_Jean_1964"
-		local_current_parliament_id = "CH_NT-NR_2015"
-		
-		didIrunforthenextSRelection <- function(local_pers_id,local_current_parliament_id)
-		{
-		# default is nope
-		IRanbBolean <- FALSE
-		
-		# my country
-		mycountry <- substr(local_pers_id,1,2)
-		
-		# equivalent pariament ID of the SR election
-		SR_local_current_parliament_id <- gsub("CH_NT-NR", "CH_NT-SR", local_current_parliament_id)
-		
-		# check if you ran for this one in PCC!? By seeing is any data is returned
-		MEINELEN <- ELENBU[which(ELENBU$parliament_id == nextparliament(SR_local_current_parliament_id) & ELENBU$pers_id == local_pers_id),]
-		
-		# check if you occur for this year in Oliver his SR file
-		upcommingyear <- as.numeric(str_extract(nextparliament(SR_local_current_parliament_id), "\\d{4}"))
-		OLILO <- SRCANRED[which(SRCANRED$Jahr == upcommingyear & SRCANRED$pers_id == local_pers_id),]
-		
-		# set the result
-		if(mycountry== "CH" & (nrow(MEINELEN) > 0 | nrow(OLILO) > 0)){
-		IRanbBolean <- TRUE
-		}
-		
-		return(IRanbBolean)
-		}
-
-		# check
-		didIrunforthenextelection("CH_Addor_Jean_1964","CH_NT-NR_2011")
-		didIrunforthenextelection("CH_Addor_Jean_1964","CH_NT-NR_2015")
 		
 	  # step 5.1: get a dummy that indicates if this was somebody that ran in the CH 2019 NR elections
 		
@@ -1596,7 +1586,7 @@ ls()
 		table(TEMP$persvoteins)
 		
 		# cat 3 - CHE open-list candidate for the National Council and also was a first-past-the-post candidate for the Council of States
-		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & TEMP$SRcan == "ran for SR in next election"),"cat 3 - CH open list NR and also SR cand",TEMP$persvoteins) # Incorrect value is used here still!
+		TEMP$persvoteins <- ifelse((TEMP$country == "CH" & TEMP$candidature_type == "L" & TEMP$SRcanfromfunction),"cat 3 - CH open list NR and also SR cand",TEMP$persvoteins) # Incorrect value is used here still!
 		table(TEMP$persvoteins)
 		
 		# cat 4 - DEU: mixed candidates
