@@ -1452,13 +1452,25 @@ ls()
 
 			# checking these against each other
 				table(TEMP$SRcan,TEMP$parliament_id)
-				table(TEMP$SRcanfromfunction,TEMP$parliament_id) # why no cases in CH_NT-NR_2015
+				table(TEMP$SRcanfromfunction,TEMP$parliament_id) # so actually really quite a lot of cases for CH_NT-NR_2015 now, to many?
+				
+				CH15PC <- TEMP[which(TEMP$SRcanfromfunction & TEMP$parliament_id == "CH_NT-NR_2015"),]
+				nrow(CH15PC)
+				length(unique(CH15PC$pers_id))
+				
+				CH11PC <- TEMP[which(TEMP$SRcanfromfunction & TEMP$parliament_id == "CH_NT-NR_2011"),]
+				nrow(CH11PC)
+				length(unique(CH11PC$pers_id)) # OK, so in terms of number of MPs the numbers really don't stand out, so no need to be worried.
+				
+				CH07PC <- TEMP[which(TEMP$SRcanfromfunction & TEMP$parliament_id == "CH_NT-NR_2007"),]
+				nrow(CH07PC)
+				length(unique(CH07PC$pers_id))
 
 				# so, what we would expect to see here is for SRcanfromfunction more cases as classified as curring for the next SR elections then for SRcan and that SRcan does not identify any positive cases that SRcanfromfunction does not also identify
 				table(TEMP$SRcan)
 				table(TEMP$SRcanfromfunction)
 				table(TEMP$SRcanfromfunction,TEMP$SRcan)
-				# this is indeed what we find, SRcanfromfunction finds 154 more cases, what confuses me however is not cases in CH_NT-NR_2015
+				# this is indeed what we find, SRcanfromfunction now finds 1838 more 'cases' (don't forget these are MP months).
 
 
 	# step 5: we would also like to know if an MP even ran for the upcomming election, because if not, they also have a very low incentive (we could try this as a seperate category, or just make this the 'lowest' together with german district canddiates
