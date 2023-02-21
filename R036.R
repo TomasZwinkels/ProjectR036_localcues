@@ -1570,7 +1570,10 @@ ls()
 		table(is.na(resvec))
 		
 		TEMP$ranatnextelection <- resvec
-		table(TEMP$ranatnextelection) # OK, so really A LOT of people that did not run!
+		table(TEMP$ranatnextelection) 
+		prop.table(table(TEMP$ranatnextelection)) # OK, so around 13% of cases are of people that did not run again, that makes sense to me.
+
+		table(TEMP$ranatnextelection,TEMP$country) # 
 
 	# step 6: put it al together
 		
@@ -1592,10 +1595,11 @@ ls()
 		# cat 4 - DEU: mixed candidates
 		TEMP$persvoteins <- ifelse((TEMP$country == "DE" & TEMP$candidature_type == "LD"),"cat 4 - DE mixed",TEMP$persvoteins)
 		table(TEMP$persvoteins)
-		
+
 		# cat 5 - DEU: (closed) list candidate
 		TEMP$persvoteins <- ifelse((TEMP$country == "DE" & TEMP$candidature_type == "L"),"cat 5 (lowest incentive)- DE closed list",TEMP$persvoteins)
 		table(TEMP$persvoteins)
+		table(TEMP$candidature_type,TEMP$country)
 		
 		# cat 6 - Did not run in the upcomming elections! (both countries) # OK, so this took away a lot of CH cases from the cat 2 - CH open list category!
 		TEMP$persvoteins <- ifelse((!TEMP$ranatnextelection),"cat 6 (no incentive)- did not run in the upcomming election",TEMP$persvoteins)
@@ -1630,7 +1634,7 @@ ls()
 				# CH_Gobbi_Norman_1977 should not be in our own data, according to our specified selection criteria? -- well, that is not true, he was in parliament on basis of his 2007 election.
 		
 		# any NA left?
-		table(is.na(TEMP$persvoteins)) # OK, so note that indeed if 'cat 6' is included here! We have a categorisation for all people. 'all' that is left now, is to get ELEN (like) data for 2019 for Switserland in! Because they
+		table(is.na(TEMP$persvoteins)) # OK, so note that indeed if 'cat 6' is included here! We have a categorisation for all people. 
 			# inspect
 			NASLEFT <- TEMP[which(is.na(TEMP$persvoteins)),]
 			head(NASLEFT)
@@ -1649,7 +1653,7 @@ ls()
 		
 		table(is.na(DT$persvoteins),DT$country)
 
-		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 4 - DE mixed","cat 5 (lowest incentive)- DE closed list","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 (highest incentive) - DE dis and CH fptp"))
+		DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 4 - DE mixed","cat 6 (no incentive)- did not run in the upcomming election","cat 5 (lowest incentive)- DE closed list","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 (highest incentive) - DE dis and CH fptp"))
 		
 		# alternatively
 	#	DT$persvoteins <- factor(DT$persvoteins,levels=c("cat 5 (lowest incentive)- DE closed list","cat 4 - DE mixed","cat 3 - CH open list NR and also SR cand","cat 2 - CH open list","cat 1 (highest incentive) - DE dis and CH fptp"))
@@ -1679,13 +1683,13 @@ ls()
 				fix3
 				
 				# here
-				exp(fix3[1])/(1+exp(fix3[1]))*100 # so about 8.2% is the intercept (german mixed!)
+				exp(fix3[1])/(1+exp(fix3[1]))*100 
 					
-				exp(fix3[1]+fix3[5])/(1+exp(fix3[1]+fix3[5]))*100 # so now 8.05%, so smaller effect?! - indeed, the sign flips! -- also for the main effects of the incentive to attract a personal vote, note how this is really not as expected, the expectation was: as the number get lower, the incentive to get a personal district vote increases..
+				exp(fix3[1]+fix3[5])/(1+exp(fix3[1]+fix3[5]))*100 
 		
 				# this was
 				fix2
-				exp(fix2[1])/(1+exp(fix2[1]))*100 # so about 8.2% is the intercept (german mixed!)
+				exp(fix2[1])/(1+exp(fix2[1]))*100 
 					
 				exp(fix2[1]+fix2[5])/(1+exp(fix2[1]+fix2[5]))*100
 		
@@ -1733,8 +1737,6 @@ ls()
 									,data=DT_RED, family= binomial) #	,data=DT)
 				summary(m_mp_campaign_season_red)
 				stargazer(m_mp_campaign_season,m_mp_campaign_season_red,m_mp_persvotinc,type="text",intercept.bottom=FALSE)
-		
-			# conclusion: something odd is going on here! Now there is a positive effect here?!
 		
 			# other correlations?
 			DT$campaign_season_num <- ifelse(DT$campaign_season == "yes",1,0)
@@ -1903,6 +1905,7 @@ ls()
 
 			
 		# intpreting the effect sizes
+			summary(m_mp_int)
 			plot_model(m_mp_int)
 			
 			m1 <- m_mp_int
@@ -1921,37 +1924,37 @@ ls()
 			# average in the different countries
 				
 				deltaMethod(m1,"exp(x1)/(1+exp(x1))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
-				deltaMethod(m1,"exp(x1+x10)/(1+exp(x1+x10))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				deltaMethod(m1,"exp(x1+x11)/(1+exp(x1+x11))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep="")) # note that with the new extra data, the baseline country difference has basically disappeared.
 			
-			# cat 1 - DEU: pure district candidate & CHE FPTP
+			# cat 1 - DEU: pure district candidate & CHE FPTP (note that for the CHE FPTP observations to country dummy is not weighed in here).
 
 				# outside of campaign season
-				exp(fix4[1]+fix4[9])/(1+exp(fix4[1]+fix4[9]))*100
-				deltaMethod(m1,"exp(x1+x9)/(1+exp(x1+x9))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[10])/(1+exp(fix4[1]+fix4[10]))*100
+				deltaMethod(m1,"exp(x1+x10)/(1+exp(x1+x10))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[5]+fix4[9]+fix4[14])/(1+exp(fix4[1]+fix4[9]+fix4[14]))*100
-				deltaMethod(m1,"exp(x1+x5+x9+x14)/(1+exp(x1+x9+x14))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[5]+fix4[10]+fix4[16])/(1+exp(fix4[1]+fix4[5]+fix4[10]+fix4[16]))*100
+				deltaMethod(m1,"exp(x1+x5+x10+x16)/(1+exp(x1+x5+x10+x16))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 
 			# cat 2 - CHE: open-list candidate for the National Council
 			
 				# outside of campaign season
-				exp(fix4[1]+fix4[10]+fix4[8])/(1+exp(fix4[1]+fix4[10]+fix4[8]))*100
-				deltaMethod(m1,"exp(x1+x10+x13)/(1+exp(x1+x10+x13))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[11]+fix4[9])/(1+exp(fix4[1]+fix4[11]+fix4[9]))*100
+				deltaMethod(m1,"exp(x1+x11+x9)/(1+exp(x1+x11+x9))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[10]+fix4[5]+fix4[13]+fix4[8])/(1+exp(fix4[1]+fix4[10]+fix4[13]+fix4[8]))*100
-				deltaMethod(m1,"exp(x1+x10+x5+x13+x8)/(1+exp(x1+x10+x13+x8))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[11]+fix4[5]+fix4[9]+fix4[15])/(1+exp(fix4[1]+fix4[11]+fix4[5]+fix4[9]+fix4[15]))*100
+				deltaMethod(m1,"exp(x1+x11+x5+x9+x15)/(1+exp(x1+x11+x5+x9+x15))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 
 			# cat 3 - CHE open-list candidate for the NC and also first-past-the-post candidate for the COS
 			
 				# outside of campaign season
-				exp(fix4[1]+fix4[10]+fix4[7])/(1+exp(fix4[1]+fix4[10]+fix4[7]))*100
-				deltaMethod(m1,"exp(x1+x10+x7)/(1+exp(x1+x10+x7))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[11]+fix4[8])/(1+exp(fix4[1]+fix4[11]+fix4[8]))*100
+				deltaMethod(m1,"exp(x1+x11+x8)/(1+exp(x1+x11+x8))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[10]+fix4[5]+fix4[7]+fix4[12])/(1+exp(fix4[1]+fix4[10]+fix4[7]+fix4[12]))*100
-				deltaMethod(m1,"exp(x1+x10+x5+x7+x12)/(1+exp(x1+x10+x7+x12))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[11]+fix4[5]+fix4[8]+fix4[14])/(1+exp(fix4[1]+fix4[11]+fix4[5]+fix4[8]+fix4[14]))*100
+				deltaMethod(m1,"exp(x1+x11+x5+x8+x14)/(1+exp(x1+x11+x5+x8+x14))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 		
 			# cat 4 - DEU: mixed candidates
 
@@ -1966,14 +1969,47 @@ ls()
 			# cat 5 - DEU: (closed) list candidate
 			
 				# outside of campaign season
-				exp(fix4[1]+fix4[6])/(1+exp(fix4[1]+fix4[6]))*100
-				deltaMethod(m1,"exp(x1+x6)/(1+exp(x1+x6))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[7])/(1+exp(fix4[1]+fix4[7]))*100
+				deltaMethod(m1,"exp(x1+x7)/(1+exp(x1+x7))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[5]+fix4[6]+fix4[11])/(1+exp(fix4[1]+fix4[6]+fix4[11]))*100
-				deltaMethod(m1,"exp(x1+x5+x6+x11)/(1+exp(x1+x6+x11))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[5]+fix4[7]+fix4[13])/(1+exp(fix4[1]+fix4[5]+fix4[7]+fix4[13]))*100
+				deltaMethod(m1,"exp(x1+x5+x7+x13)/(1+exp(x1+x5+x7+x13))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				# /\ double checking this one
+				fix4
+				# x1+x7 # is correct
+				# x1+x5+x7+x13 # is correct
+
+			# cat 6 - did not run in the next election (both countries)
 			
-		# OK, lets add a model with campaign_season only as well.
+				# outside of the campaign season
+				exp(fix4[1]+fix4[6])/(1+exp(fix4[1]+fix4[6]))*100
+				deltaMethod(m1,"exp(x1+x6)/(1+exp(x1+x6))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+
+				# during campaign season
+				exp(fix4[1]+fix4[5]+fix4[6]+fix4[12])/(1+exp(fix4[1]+fix4[5]+fix4[6]+fix4[12]))*100
+				deltaMethod(m1,"exp(x1+x5+x6+x12)/(1+exp(x1+x5+x6+x12))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+			
+		# descriptively, what do the group averages look like
+			
+			# Use aggregate to calculate the average of percentage_local_indvlevel for each combination of persvoteins and campaign_season
+			DT_RED_agg <- aggregate(
+			  percentage_local_indvlevel ~ persvoteins + campaign_season, 
+			  data = DT_RED, 
+			  FUN = mean
+			)
+
+			# Sort the resulting data frame by persvoteins
+			DT_RED_agg_sorted <- DT_RED_agg %>% arrange(persvoteins)
+
+			# View the resulting data frame
+			DT_RED_agg_sorted
+			
+			# note that the estimated value for cat 5 (lowest incentive)- DE closed list - during campaign season is 
+				deltaMethod(m1,"exp(x1+x5+x7+x13)/(1+exp(x1+x5+x7+x13))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				# yet, the descriptive mean is half that?! - around 8.1%
+			
+		# OK, lets look at a model with campaign_season only as well.
 			m_mp_campaignsonly  <- glmer(BinomialResponseMatrixRED~ #year_cent + # pers_loc~ year_cent +
 									#age_cent +
 									#tenure_cent +
