@@ -1926,6 +1926,9 @@ ls()
 				deltaMethod(m1,"exp(x1)/(1+exp(x1))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 				deltaMethod(m1,"exp(x1+x11)/(1+exp(x1+x11))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep="")) # note that with the new extra data, the baseline country difference has basically disappeared.
 			
+			# campaign season independent of context
+				deltaMethod(m1,"exp(x1+x5)/(1+exp(x1+x5))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+			
 			# cat 1 - DEU: pure district candidate & CHE FPTP (note that for the CHE FPTP observations to country dummy is not weighed in here).
 
 				# outside of campaign season
