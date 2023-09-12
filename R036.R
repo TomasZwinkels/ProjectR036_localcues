@@ -376,6 +376,8 @@ ls()
 	head(TWEE)
 	tail(TWEE)
 	
+	range(TWEE$tweet_timestamp)
+	
 	table(TWEE$candidacies)
 	table(TWEE$country)
 	
@@ -500,6 +502,19 @@ ls()
 		nrow(RESERED)
 		head(RESERED)
 
+		# OK, so lets add the work-around Oliver requested to get MPs in here past 2019-08, the point is that there are [rcen] dates for Swiss MPs here;;
+		
+			# inspecting these cases
+			
+			# for Switserland
+				nrow(RESERED[which(RESERED$res_entry_end == "05aug2019[[rcen]]"),]) 
+			# for Germany
+				nrow(RESERED[which(RESERED$res_entry_end == "18jun2019[[rcen]]"),])
+
+			# and a (somewhat dirty) workaround
+			RESERED$res_entry_end[which(RESERED$res_entry_end == "05aug2019[[rcen]]")] <- "20oct2019" #  # please note that this assumes that these people stayed until the end of the year, which is probably not true for everybody.			
+			RESERED$res_entry_end[which(RESERED$res_entry_end == "18jun2019[[rcen]]")] <- "20oct2019" #
+
 		# Make the dates readable for R
 			# a) Remove information on left ("[[lcen]]") and right censoring ("[[rcen]]")
 				RESERED$res_entry_start <- gsub("[[lcen]]", "", RESERED$res_entry_start, fixed = TRUE)
@@ -562,10 +577,16 @@ ls()
 			  uniqv[which.max(tabulate(match(v, uniqv)))]
 			}
 					
-		RESEREDMONTH <- aggregate(RESEREDLONG$tenure, by = list(pers_id = RESEREDLONG$pers_id, month = RESEREDLONG$month), getmode)
+		RESEREDMONTH <- aggregate(RESEREDLONG$tenure, by = list(pers_id = RESEREDLONG$pers_id, month = RESEREDLONG$monthnew), getmode)
 		colnames(RESEREDMONTH)[match("x",colnames(RESEREDMONTH))] <- "tenure" # rename variable x to tenure
 
 		RESEREDMONTH[1:20,]
+		
+		head(RESEREDMONTH)
+		table(RESEREDMONTH$month) # OK, so already here the cutoff is 2019-08! # so, the workaround worked indeed. Do note that the number of cases dropped from around 960 to 246.. is that Germany  related?
+		
+		tempcountryvec <- substr(RESEREDMONTH$pers_id, 1, 2)
+		table(tempcountryvec, RESEREDMONTH$month) # so, yes indeed. Workaround for the Germans as well? # yes, you implemented that.
 
 #################
 
@@ -656,6 +677,10 @@ ls()
 	tail(DT)
 	summary(DT$percentage_local_indvlevel)
 	hist(DT$percentage_local_indvlevel)
+	
+	# so, what is the time-frame here Now
+	head(DT)
+	table(DT$month)
 
 #################
 
@@ -721,10 +746,10 @@ ls()
 		  geom_line(aes(y=lq_sum,x=timest,colour="Number of tweets with local cue"),size=1) +
 		  geom_line(aes(y = pers_loc*1000, colour = "Percentage of tweet with local cue"),size=2) +
 		  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Relative number of local cues [%]")) +
-		  scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
+		  scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-12-31 23:59:59 GMT"))) +
 		  geom_vline(aes(xintercept=TWT$leg_period_start_firstmonthday), linetype=4, colour="darkgreen",size=1.2) +
 		  facet_grid(country ~ .) + # facet_grid(country ~ .)
-		  theme_pubr(base_size =24) +
+	#	  theme_pubr(base_size =24) +
 		  scale_colour_manual(values = c("darkred", "black", "darkblue")) +
 		  geom_rect(data=TWT, aes(xmin=leg_period_start_firstmonthday- months(6), xmax=leg_period_start_firstmonthday, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen")
 	
@@ -1055,6 +1080,7 @@ ls()
 						table(DT$date_of_next_election)
 						
 						# CH_NT-NR_2023 - 22 October 2023
+						
 					
 					# any NA left?
 						table(is.na(DT$date_of_next_election))
@@ -1098,7 +1124,7 @@ ls()
 			# geom_smooth() +
 			facet_grid(country ~ .) +
 			#facet_grid(persvoteins ~ .) +
-			scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-05-31 23:59:59 GMT"))) +
+			scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-12-31 23:59:59 GMT"))) +
 		#	geom_rect(data=DTHERE, aes(xmin=date_of_next_election- months(lengthcampaignseason), xmax=date_of_next_election, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") +
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2009-09-27 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2009-09-27 00:00:00 GMT") & DTHERE$country == "DE",],method=lm,color="darkgreen",size=1.5) + # DE starts here
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2013-09-22 00:00:00 GMT") & DTHERE$country == "DE",],method=lm,color="darkgreen",size=1.5) +
@@ -1115,7 +1141,7 @@ ls()
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2011-10-23 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) + 
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2015-10-18 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) +
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2019-10-20 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) +
-			theme_pubr(base_size =20) + # theme_pubr(base_size =20) +
+		#	theme_pubr(base_size =20) + # theme_pubr(base_size =20) +
 			xlab("Time") +
 			ylab("% of MP's tweets this month with a local cue") +
 			guides(colour=guide_legend(title="Campaign Season")) +
