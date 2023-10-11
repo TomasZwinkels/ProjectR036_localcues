@@ -1776,11 +1776,28 @@ ls()
 			head(BinomialResponseMatrixRED)
 			nrow(BinomialResponseMatrixRED)
 		
+			# and an empty model
+			m_mp_empty  <- glmer(BinomialResponseMatrixRED~ 
+									(1 | country) + # (year_cent | country) +
+									(1 | pers_id)
+									,data=DT_RED, family= binomial) #	,data=DT)
+				summary(m_mp_empty)
+			
+			# and a model with campaign season only
+			m_mp_camponly  <- glmer(BinomialResponseMatrixRED~ 
+									campaign_season +
+									(1 | country) + # (year_cent | country) +
+									(1 | pers_id)
+									,data=DT_RED, family= binomial) #	,data=DT)
+				summary(m_mp_camponly)
+			stargazer(m_mp_empty,m_mp_camponly,type="text",intercept.bottom=FALSE)
+		
+			# and the model with controls and campaign season
 			m_mp_campaign_season_red  <- glmer(BinomialResponseMatrixRED~ year_cent + # pers_loc~ year_cent +
 									age_cent +
 									tenure_cent +
 									campaign_season +
-									country +
+								#	country +
 									(1 | country) + # (year_cent | country) +
 									(1 | pers_id)
 									,data=DT_RED, family= binomial) #	,data=DT)
@@ -1799,9 +1816,9 @@ ls()
 									age_cent +
 									tenure_cent +
 									campaign_season +
-									country +
+								#	country +
 									persvoteins +
-								#	(1 | country) + # (year_cent | country) + # does not really add anything anymore when country is in as a fixed effect.
+									(1 | country) + # (year_cent | country) + # does not really add anything anymore when country is in as a fixed effect.
 									(1 | pers_id)
 									,data=DT_RED, family= binomial) #	,data=DT)
 				summary(m_mp_persvotinc_mc)
@@ -1873,8 +1890,8 @@ ls()
 									tenure_cent +
 									campaign_season *
 									persvoteins +
-									country +
-								#	(1 | country) + # (year_cent | country) +
+								#	country +
+									(1 | country) + # (year_cent | country) +
 									(1 | pers_id)
 									,data=DT_RED, family= binomial) #	,data=DT)
 				summary(m_mp_int)
@@ -1906,6 +1923,184 @@ ls()
 				# number of tweets during and outside of campaign season
 				head(DT)
 				tapply(DT$total_nr_of_tweets, DT$campaign_season, mean)
+
+		## adding a properly complete multi-level outputed version of this model Here
+			
+	m1 <- m_mp_empty
+	m2 <- m_mp_camponly
+	m3 <- m_mp_campaign_season_red
+	m4 <- m_mp_persvotinc_mc
+	m5 <- m_mp_int
+	
+	summary(m1)
+	summary(m2)
+	summary(m3)
+	summary(m4)
+	summary(m5)
+	
+	stargazer(m1,m2,m3,m4,m5,intercept.bottom=FALSE,type="text")
+	
+
+# name replacements
+
+	specificnamecleaning <- function(dirtynamesloc)	
+			{
+				cleanernames <- gsub("(Intercept)","Constant",dirtynamesloc,fixed=TRUE)
+				cleanernames <- gsub("year_cent","Year",cleanernames,fixed=TRUE)
+				cleanernames <- gsub("age_cent","MP age",cleanernames,fixed=TRUE)
+				cleanernames <- gsub("tenure_cent","MP Tenure",cleanernames,fixed=TRUE)
+				cleanernames <- gsub("campaign_seasonyes","Campaign season",cleanernames,fixed=TRUE)
+				cleanernames <- gsub("countryCH","Country:CH",cleanernames,fixed=TRUE)
+				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 6 (no incentive)- did not run in the upcomming election","Campaign season:did not run",cleanernames,fixed=TRUE)
+				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 5 (lowest incentive)- DE closed list","Campaign season:PVote.Incen. level 5",cleanernames,fixed=TRUE)
+				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 3 - CH open list NR and also SR cand","Campaign season:PVote.Incen. level 3",cleanernames,fixed=TRUE)
+				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 2 - CH open list","Campaign season:PVote.Incen. level 2)",cleanernames,fixed=TRUE)	
+				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 1 (highest incentive) - DE dis and CH fptp","Campaign season:PVote.Incen. level 1",cleanernames,fixed=TRUE)	
+				cleanernames <- gsub("persvoteinscat 6 (no incentive)- did not run in the upcomming election","Did not run in the upcoming election",cleanernames,fixed=TRUE)	
+				cleanernames <- gsub("persvoteinscat 5 (lowest incentive)- DE closed list","PVote.Incen. level 5 (lowest incentive) - DE closed list",cleanernames,fixed=TRUE)	
+				cleanernames <- gsub("persvoteinscat 3 - CH open list NR and also SR cand","PVote.Incen. level 3 - CH open list NR and also SR cand",cleanernames,fixed=TRUE)	
+				cleanernames <- gsub("persvoteinscat 2 - CH open list","PVote.Incen. level 2 - CH open list ",cleanernames,fixed=TRUE)	
+				cleanernames <- gsub("persvoteinscat 1 (highest incentive) - DE dis and CH fptp","PVote.Incen. level 1 (highest incentive) - DE dis and CH fptp",cleanernames,fixed=TRUE)	
+				return(cleanernames)
+			}
+			
+			dirtynames <- names(fixef(m5))
+			
+			specificnamecleaning(dirtynames)
+
+# use bootstrapping to get a standard error for the variance estimates.
+	#	runconfints <- FALSE
+		runconfints <- TRUE
+	
+	# getting the confidence intervals of the variances
+			if (runconfints)
+				{
+						simulations <- 100 #100
+						am1 <- confint(m1,method="boot",nsim=simulations)
+						am2 <- confint(m2,method="boot",nsim=simulations)
+						am3 <- confint(m3,method="boot",nsim=simulations)
+						am4 <- confint(m4,method="boot",nsim=simulations)
+						am5 <- confint(m5,method="boot",nsim=simulations)
+				}
+	
+	# MP-level
+				mpvar <- format(round(c(
+							as.data.frame(VarCorr(m1))$vcov[1],
+							as.data.frame(VarCorr(m2))$vcov[1],
+							as.data.frame(VarCorr(m3))$vcov[1],
+							as.data.frame(VarCorr(m4))$vcov[1],
+							as.data.frame(VarCorr(m5))$vcov[1]
+											),digits=3),nsmall=3)
+		
+				if (runconfints)
+				{					
+						mpvarse <- format(round(c(
+							((am1[1,2] - am1[1,1]) / 1.98),
+							((am2[1,2] - am2[1,1]) / 1.98),
+							((am3[1,2] - am3[1,1]) / 1.98),
+							((am4[1,2] - am4[1,1]) / 1.98),
+							((am5[1,2] - am5[1,1]) / 1.98)
+							),digits=3),nsmall=3)
+				} else {
+					mpvarse <- rep("NE",5)
+				}	
+	
+	# country level
+				countryvar <- format(round(c(
+							as.data.frame(VarCorr(m1))$vcov[2],
+							as.data.frame(VarCorr(m2))$vcov[2],
+							as.data.frame(VarCorr(m3))$vcov[2],
+							as.data.frame(VarCorr(m4))$vcov[2],
+							as.data.frame(VarCorr(m5))$vcov[2]
+											),digits=3),nsmall=3)
+				if (runconfints)
+				{					
+						countryvarse <- format(round(c(
+							((am1[2,2] - am1[2,1]) / 1.98),
+							((am2[2,2] - am2[2,1]) / 1.98),
+							((am3[2,2] - am3[2,1]) / 1.98),
+							((am4[2,2] - am4[2,1]) / 1.98),
+							((am5[2,2] - am5[2,1]) / 1.98)
+							),digits=3),nsmall=3)
+				} else {
+					countryvarse <- rep("NE",5)
+				}	
+	
+	# info on the number of observations
+	
+
+	nobsc <-  c(nobs(m1),
+				nobs(m2),
+				nobs(m3),
+				nobs(m4),
+				nobs(m5)
+				)
+						
+	nrofMPS <- c(		nrow(ranef(m1)$pers_id),
+							nrow(ranef(m2)$pers_id),
+							nrow(ranef(m3)$pers_id),
+							nrow(ranef(m4)$pers_id),
+							nrow(ranef(m5)$pers_id)
+							)
+							
+	nrofcountries <- c(	nrow(ranef(m1)$country),
+							nrow(ranef(m2)$country),
+							nrow(ranef(m3)$country),
+							nrow(ranef(m4)$country),
+							nrow(ranef(m5)$country)
+							)
+							
+	# this function is used for the layout
+			GiveBrackets <- function(vector1)
+				{
+					resultvec <- vector()
+					for(i in 1:length(vector1))
+					{
+						resultvec[i] <- paste("(",vector1[i],")",sep="")
+					}
+					return(resultvec)
+				}
+
+
+	varlabels <- specificnamecleaning(names(fixef(m5)))
+
+	stargazer(
+		m1,
+		m2,
+		m3,
+		m4,
+		m5,
+		type="text",
+		intercept.bottom=FALSE,
+		no.space=FALSE,
+		column.labels=(c("Empty","DiMa + El.Vol.","Party fix.ef.","Context","Stand.Betas.")),
+		star.char = c(".", "*", "**", "***"),
+		star.cutoffs = c(0.1, 0.05, 0.01, 0.001),
+		keep.stat=c("ll"),
+		omit.stat=c("aic","bic"),
+		font.size = "small",
+		label = "RegTab",
+		caption = "Regression model predicting selection election gap with district magnitude, linked lists and controls",
+		dep.var.labels = c("abs(ratio elected - ratio on list)"),
+		covariate.labels = varlabels,
+			add.lines = list(	
+							c("Random effects"),
+							c("--------------------------"),
+							c("NR of MP-months",nobsc),
+							c("--"),
+							#c("MP-months level var",mpmonthlvar),
+							#c("",GiveBrackets(mpmonthlvarse)),
+							c("NR of MPS",nrofMPS),
+							c("MP level var",mpvar),
+							c("",GiveBrackets(mpvarse)),
+							c("NR of countries",nrofcountries),
+							c("country-level var",countryvar),
+							c("",GiveBrackets(countryvarse))
+							)
+		 ) 
+
+
+
 
 		# and some alternative model specifications in line with what Oliver suggested.
 
