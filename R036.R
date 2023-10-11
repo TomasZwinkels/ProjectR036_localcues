@@ -51,6 +51,7 @@
 	if("car" %in% rownames(installed.packages()) == FALSE) {install.packages("car")}
 	if("MASS" %in% rownames(installed.packages()) == FALSE) {install.packages("MASS")}
 	if("pscl" %in% rownames(installed.packages()) == FALSE) {install.packages("pscl")}
+	if("ggpubr" %in% rownames(installed.packages()) == FALSE) {install.packages("ggpubr")}
 
 # Load packages
 	library(openxlsx)
@@ -76,6 +77,7 @@
 	library(MASS)
 	library(pscl)
 	library(readxl)
+	library(ggpubr)
 
 substrRight <- function(x, n)
 	{
@@ -885,7 +887,6 @@ ls()
 		theme_pubr(base_size =24)
 		
 		
-		
 	# lets do a regression model
 		
 		## for a starter, lets remove all of the observations for which we do not have any tweets of MPS
@@ -1059,6 +1060,7 @@ ls()
 						DT$date_of_next_election[which(DT$parliament_id == "DE_NT-BT_2017")] <- as.POSIXct("2021-09-26 00:00:00 GMT")# as.POSIXct("26sep2021",format=c("%d%b%Y"))
 						table(DT$date_of_next_election)
 						
+						
 						# DE_NT-BT_2017 - 26 September 2021
 
 					# for CH
@@ -1085,6 +1087,8 @@ ls()
 					# any NA left?
 						table(is.na(DT$date_of_next_election))
 						table(DT$date_of_next_election)
+						
+						DT[which(is.na(DT$date_of_next_election)),] 
 				
 						
 			# variable generation taken from above, but now the the 'next election' dates!
@@ -1132,7 +1136,7 @@ ls()
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2021-09-26 00:00:00 GMT") & DTHERE$country == "DE",],method=lm,color="darkgreen",size=1.5) +
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2011-10-23 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=1.5) + # CH starts here
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2015-10-18 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=1.5) +
-		#	geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2019-10-20 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=2) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2019-10-20 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=2) +
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2023-10-22 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=1.5) +
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2009-09-27 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "DE",],method=lm,color="darkred",size=1.5) + # DE outside of campaign season starts here
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2013-09-22 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "DE",],method=lm,color="darkred",size=1.5) +  
@@ -1141,13 +1145,32 @@ ls()
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2011-10-23 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) + 
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2015-10-18 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) +
 			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2019-10-20 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) +
-		#	theme_pubr(base_size =20) + # theme_pubr(base_size =20) +
+			theme_pubr(base_size =20) + # theme_pubr(base_size =20) +
 			xlab("Time") +
 			ylab("% of MP's tweets this month with a local cue") +
 			guides(colour=guide_legend(title="Campaign Season")) +
 		    theme(panel.grid.major.y = element_line(color = "darkgrey",
                                           size = 0.5,
                                           linetype = 2))
+		# OK, so how many unique MPS are in here? Per country?
+		
+			head(DTHERE)
+			nrow(DTHERE)
+			length(unique(DTHERE$pers_id))
+			TAB <- table(DTHERE$pers_id,DTHERE$country)
+			ctvec <- substr(rownames(TAB),start=1,stop=2)
+			table(ctvec)
+			
+			
+			# how often does the average MP occur?
+			
+				# In Germany
+				summary(TAB[which(ctvec == "DE"),1])
+				sum(TAB[which(ctvec == "DE"),1])
+				
+				# In Switserland
+				summary(TAB[which(ctvec == "CH"),2])
+				sum(TAB[which(ctvec == "DE"),1])
 			
 			# hey! there was an issue with the construction of the campaign season for here! last 6 months of observation period are erroniously classified as campaign season?!
 			# please note this has been switched to 3 months now.
@@ -1823,6 +1846,22 @@ ls()
 				# nope, still not the exact same result....
 				# I guess the more important question is: do I know for sure that the model that uses BinomialResponseMatrixRED is correct.
 				
+				# do these match?
+				table(DT_RED$pers_id_tenure == DATAUSEDINMODEL$pers_id_tenure) # yes, all match. Great! # also matches on the 'incorrect' model? -- in any case, I know the model that runs on BinomialResponseMatrixRED and DT_RED is correct in this regard.
+				str(DT_RED)
+				str(DATAUSEDINMODEL)
+				
+				# and checking the biomial response matrix again against DTRED
+				head(BinomialResponseMatrixRED)
+				percentagefrommatrix <- BinomialResponseMatrixRED[,1] / (BinomialResponseMatrixRED[,1] + BinomialResponseMatrixRED[,2])
+				table(percentagefrommatrix == DT_RED$percentage_local_indvlevel) # match! 
+				
+				## OK, and lets just break the script if this goes wrong
+				if(length(table(percentagefrommatrix == DT_RED$percentage_local_indvlevel))>1)
+				{
+					DT_RED <- NULL
+				}
+				
 				# for the check below, we need a case unique identifier
 				DT_RED$pers_id_month <- paste0(DT_RED$pers_id,DT_RED$month)
 				head(DT_RED$pers_id_month)
@@ -1847,15 +1886,7 @@ ls()
 				tail(DATAUSEDINMODEL$pers_id_tenure)
 				length(DATAUSEDINMODEL$pers_id_tenure) == length(unique(DATAUSEDINMODEL$pers_id_tenure))  # should return TRUE
 				
-				# do these match?
-				table(DT_RED$pers_id_tenure == DATAUSEDINMODEL$pers_id_tenure) # yes, all match. Great! # also matches on the 'incorrect' model? -- in any case, I know the model that runs on BinomialResponseMatrixRED and DT_RED is correct in this regard.
-				str(DT_RED)
-				str(DATAUSEDINMODEL)
 				
-				# and checking the biomial response matrix again against DTRED
-				head(BinomialResponseMatrixRED)
-				percentagefrommatrix <- BinomialResponseMatrixRED[,1] / (BinomialResponseMatrixRED[,1] + BinomialResponseMatrixRED[,2])
-				table(percentagefrommatrix == DT_RED$percentage_local_indvlevel) # match!
 				
 				head(model.frame(m_mp_int))
 				head(model.frame(terms = c(all.vars(m_mp_int), pers_id_month), data = DT_RED))
@@ -1865,6 +1896,7 @@ ls()
 				
 				stargazer(m_mp_campaign_season_red,m_mp_persvotinc_mc,m_mp_int,type="text",intercept.bottom=FALSE)
 				
+				# is this the model in the manuscript? >>>> YES IT IS
 				stargazer(m_mp_campaign_season_red,m_mp_persvotinc_mc,m_mp_int,intercept.bottom=FALSE)
 				
 				# what is the time-frame?
