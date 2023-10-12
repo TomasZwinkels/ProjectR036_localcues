@@ -1949,18 +1949,18 @@ ls()
 				cleanernames <- gsub("year_cent","Year",cleanernames,fixed=TRUE)
 				cleanernames <- gsub("age_cent","MP age",cleanernames,fixed=TRUE)
 				cleanernames <- gsub("tenure_cent","MP Tenure",cleanernames,fixed=TRUE)
-				cleanernames <- gsub("campaign_seasonyes","Campaign season",cleanernames,fixed=TRUE)
 				cleanernames <- gsub("countryCH","Country:CH",cleanernames,fixed=TRUE)
-				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 6 (no incentive)- did not run in the upcomming election","Campaign season:did not run",cleanernames,fixed=TRUE)
-				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 5 (lowest incentive)- DE closed list","Campaign season:PVote.Incen. level 5",cleanernames,fixed=TRUE)
-				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 3 - CH open list NR and also SR cand","Campaign season:PVote.Incen. level 3",cleanernames,fixed=TRUE)
-				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 2 - CH open list","Campaign season:PVote.Incen. level 2)",cleanernames,fixed=TRUE)	
-				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 1 (highest incentive) - DE dis and CH fptp","Campaign season:PVote.Incen. level 1",cleanernames,fixed=TRUE)	
+				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 6 (no incentive)- did not run in the upcomming election","Campaign s.:did not run",cleanernames,fixed=TRUE)
+				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 5 (lowest incentive)- DE closed list","Campaign s.:PVote.Incen. level 5",cleanernames,fixed=TRUE)
+				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 3 - CH open list NR and a SR cand","Campaign s.:PVote.Incen. level 3",cleanernames,fixed=TRUE)
+				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 2 - CH open list","Campaign s.:PVote.Incen. level 2)",cleanernames,fixed=TRUE)	
+				cleanernames <- gsub("campaign_seasonyes:persvoteinscat 1 (highest incentive) - DE dis and CH fptp","Campaign s.:PVote.Incen. level 1",cleanernames,fixed=TRUE)	
 				cleanernames <- gsub("persvoteinscat 6 (no incentive)- did not run in the upcomming election","Did not run in the upcoming election",cleanernames,fixed=TRUE)	
 				cleanernames <- gsub("persvoteinscat 5 (lowest incentive)- DE closed list","PVote.Incen. level 5 (lowest incentive) - DE closed list",cleanernames,fixed=TRUE)	
 				cleanernames <- gsub("persvoteinscat 3 - CH open list NR and also SR cand","PVote.Incen. level 3 - CH open list NR and also SR cand",cleanernames,fixed=TRUE)	
 				cleanernames <- gsub("persvoteinscat 2 - CH open list","PVote.Incen. level 2 - CH open list ",cleanernames,fixed=TRUE)	
 				cleanernames <- gsub("persvoteinscat 1 (highest incentive) - DE dis and CH fptp","PVote.Incen. level 1 (highest incentive) - DE dis and CH fptp",cleanernames,fixed=TRUE)	
+				cleanernames <- gsub("campaign_seasonyes","Campaign season",cleanernames,fixed=TRUE)
 				return(cleanernames)
 			}
 			
@@ -1975,7 +1975,7 @@ ls()
 	# getting the confidence intervals of the variances
 			if (runconfints)
 				{
-						simulations <- 100 #100
+						simulations <- 20 #100
 						am1 <- confint(m1,method="boot",nsim=simulations)
 						am2 <- confint(m2,method="boot",nsim=simulations)
 						am3 <- confint(m3,method="boot",nsim=simulations)
@@ -2070,18 +2070,18 @@ ls()
 		m3,
 		m4,
 		m5,
-		type="text",
+		type="text", 
 		intercept.bottom=FALSE,
 		no.space=FALSE,
-		column.labels=(c("Empty","DiMa + El.Vol.","Party fix.ef.","Context","Stand.Betas.")),
+		column.labels=(c("Empty","Camp.S.only","+Controls","+Context","+Interac.")),
 		star.char = c(".", "*", "**", "***"),
 		star.cutoffs = c(0.1, 0.05, 0.01, 0.001),
 		keep.stat=c("ll"),
 		omit.stat=c("aic","bic"),
 		font.size = "small",
-		label = "RegTab",
-		caption = "Regression model predicting selection election gap with district magnitude, linked lists and controls",
-		dep.var.labels = c("abs(ratio elected - ratio on list)"),
+		label = "CampaignSeasonRegression",
+		caption = "Linear regression model estimating the ratio of local cues outside and during campaign season in different electoral contexts.",
+		dep.var.labels = c("log(ratio of monthly tweets with a local que)"),
 		covariate.labels = varlabels,
 			add.lines = list(	
 							c("Random effects"),
@@ -2098,9 +2098,6 @@ ls()
 							c("",GiveBrackets(countryvarse))
 							)
 		 ) 
-
-
-
 
 		# and some alternative model specifications in line with what Oliver suggested.
 
