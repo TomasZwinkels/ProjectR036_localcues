@@ -1969,8 +1969,8 @@ ls()
 			specificnamecleaning(dirtynames)
 
 # use bootstrapping to get a standard error for the variance estimates.
-	#	runconfints <- FALSE
-		runconfints <- TRUE
+		runconfints <- FALSE
+	#	runconfints <- TRUE
 	
 	# getting the confidence intervals of the variances
 			if (runconfints)
@@ -2167,15 +2167,10 @@ ls()
 				# fix4
 				
 				# here
-				exp(fix4[1])/(1+exp(fix4[1]))*100 # cat 4 - German 
+				exp(fix4[1])/(1+exp(fix4[1]))*100 # cat 4 - German (reference)
 					
 				exp(fix4[1]+fix4[5])/(1+exp(fix4[1]+fix4[5]))*100 
-			
-			# average in the different countries
 				
-				deltaMethod(m1,"exp(x1)/(1+exp(x1))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
-				deltaMethod(m1,"exp(x1+x11)/(1+exp(x1+x11))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep="")) # note that with the new extra data, the baseline country difference has basically disappeared.
-			
 			# campaign season independent of context
 				deltaMethod(m1,"exp(x1+x5)/(1+exp(x1+x5))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
@@ -2186,28 +2181,28 @@ ls()
 				deltaMethod(m1,"exp(x1+x10)/(1+exp(x1+x10))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[5]+fix4[10]+fix4[16])/(1+exp(fix4[1]+fix4[5]+fix4[10]+fix4[16]))*100
-				deltaMethod(m1,"exp(x1+x5+x10+x16)/(1+exp(x1+x5+x10+x16))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[5]+fix4[10]+fix4[15])/(1+exp(fix4[1]+fix4[5]+fix4[10]+fix4[15]))*100
+				deltaMethod(m1,"exp(x1+x5+x10+x15)/(1+exp(x1+x5+x10+x15))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 
 			# cat 2 - CHE: open-list candidate for the National Council
 			
 				# outside of campaign season
-				exp(fix4[1]+fix4[11]+fix4[9])/(1+exp(fix4[1]+fix4[11]+fix4[9]))*100
-				deltaMethod(m1,"exp(x1+x11+x9)/(1+exp(x1+x11+x9))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[9])/(1+exp(fix4[1]+fix4[9]))*100
+				deltaMethod(m1,"exp(x1+x9)/(1+exp(x1+x9))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[11]+fix4[5]+fix4[9]+fix4[15])/(1+exp(fix4[1]+fix4[11]+fix4[5]+fix4[9]+fix4[15]))*100
-				deltaMethod(m1,"exp(x1+x11+x5+x9+x15)/(1+exp(x1+x11+x5+x9+x15))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[5]+fix4[9]+fix4[14])/(1+exp(fix4[1]+fix4[5]+fix4[9]+fix4[14]))*100
+				deltaMethod(m1,"exp(x1+x5+x9+x14)/(1+exp(x1+x5+x9+x14))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 
 			# cat 3 - CHE open-list candidate for the NC and also first-past-the-post candidate for the COS
 			
 				# outside of campaign season
-				exp(fix4[1]+fix4[11]+fix4[8])/(1+exp(fix4[1]+fix4[11]+fix4[8]))*100
-				deltaMethod(m1,"exp(x1+x11+x8)/(1+exp(x1+x11+x8))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[8])/(1+exp(fix4[1]+fix4[8]))*100
+				deltaMethod(m1,"exp(x1+x8)/(1+exp(x1+x8))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[11]+fix4[5]+fix4[8]+fix4[14])/(1+exp(fix4[1]+fix4[11]+fix4[5]+fix4[8]+fix4[14]))*100
-				deltaMethod(m1,"exp(x1+x11+x5+x8+x14)/(1+exp(x1+x11+x5+x8+x14))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[5]+fix4[8]+fix4[13])/(1+exp(fix4[1]+fix4[5]+fix4[8]+fix4[13]))*100
+				deltaMethod(m1,"exp(x1+x5+x8+x13)/(1+exp(x1+x5+x8+x13))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 		
 			# cat 4 - DEU: mixed candidates
 
@@ -2226,8 +2221,8 @@ ls()
 				deltaMethod(m1,"exp(x1+x7)/(1+exp(x1+x7))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 			
 				# during campaign season
-				exp(fix4[1]+fix4[5]+fix4[7]+fix4[13])/(1+exp(fix4[1]+fix4[5]+fix4[7]+fix4[13]))*100
-				deltaMethod(m1,"exp(x1+x5+x7+x13)/(1+exp(x1+x5+x7+x13))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[5]+fix4[7]+fix4[12])/(1+exp(fix4[1]+fix4[5]+fix4[7]+fix4[12]))*100
+				deltaMethod(m1,"exp(x1+x5+x7+x12)/(1+exp(x1+x5+x7+x12))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 				# /\ double checking this one
 				fix4
 				# x1+x7 # is correct
@@ -2240,8 +2235,88 @@ ls()
 				deltaMethod(m1,"exp(x1+x6)/(1+exp(x1+x6))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
 
 				# during campaign season
-				exp(fix4[1]+fix4[5]+fix4[6]+fix4[12])/(1+exp(fix4[1]+fix4[5]+fix4[6]+fix4[12]))*100
-				deltaMethod(m1,"exp(x1+x5+x6+x12)/(1+exp(x1+x5+x6+x12))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+				exp(fix4[1]+fix4[5]+fix4[6]+fix4[11])/(1+exp(fix4[1]+fix4[5]+fix4[6]+fix4[11]))*100
+				deltaMethod(m1,"exp(x1+x5+x6+x11)/(1+exp(x1+x5+x6+x11))*100 ", parameterNames= paste("x", 1:length(fixef(m1)), sep=""))
+			
+			# so this is supprising? They they maybe just tweet at lot less?
+			
+				# first, lets see if the modelled values are closeish to the observed ones
+					ggplot(DT_RED, aes(x = persvoteins, y = percentage_local_indvlevel)) + 
+					  geom_boxplot() + 
+					  labs(title = "Boxplot of Percentage Local by Group",
+						   x = "Group",
+						   y = "Percentage Local") + 
+					  theme_minimal()
+					  
+					 # Reorder the levels of 'persvoteins' alphabetically
+						DT_RED$persvoteinsord <- factor(DT_RED$persvoteins, levels = sort(unique(as.character(DT_RED$persvoteins)), decreasing = TRUE))
+						DT_RED$campaign_seasonord <- factor(DT_RED$campaign_season, levels = c("yes", "no"))
+
+						# Plot
+						ggplot(DT_RED, aes(x = persvoteinsord, y = percentage_local_indvlevel, fill = campaign_seasonord)) + 
+						  geom_boxplot(position = "dodge") + 
+						  
+						  # Display mean points
+						  stat_summary(fun = mean, geom = "point", shape = 23, size = 3, fill = "white", position = position_dodge(width = 0.75)) +
+						  
+						  # Display mean values
+						  stat_summary(fun = mean, geom = "text", aes(label=sprintf("%.2f", ..y..)), position = position_dodge(width = 0.75), vjust = -0.5) +
+
+						  labs(title = "Boxplot of Percentage of Local Tweets by Group and Campaign Season",
+							   x = "Group",
+							   y = "Total Number of Tweets") + 
+						  theme_minimal() +
+						  scale_y_continuous(limits = c(0, 1)) +
+						  scale_fill_manual(values = c("yes" = "blue", "no" = "red"), name = "Campaign Season") +
+						  coord_flip()
+							# OK great, this is generally quite consitent with what the regression model says.
+
+					  
+					  # some suggestion here that we only have very few observaitons in cat5.
+					  table(DT_RED$persvoteins) # yes, indeed only 256 observations, how manu people is this?
+					  length(unique(DT_RED[which(DT_RED$persvoteins == "cat 5 (lowest incentive)- DE closed list"),]$pers_id)) # 15 people, lets leave this as it is. Wide confidence interval does reflect our uncertainty here.
+				
+				# OK, and the number of tweets
+					ggplot(DT_RED, aes(x = persvoteins, y = total_nr_of_tweets)) + 
+					  geom_boxplot() + 
+					  labs(title = "Boxplot of Total number of tweets by Group",
+						   x = "Group",
+						   y = "Total number of tweets") + 
+					  theme_minimal() + 
+					  coord_cartesian(ylim = c(0, 100)) # Replace with desired range
+					  
+				# Reorder the levels of 'persvoteins' alphabetically
+				DT_RED$persvoteinsord <- factor(DT_RED$persvoteins, levels = sort(unique(as.character(DT_RED$persvoteins))))
+
+				# Plot
+				ggplot(DT_RED, aes(x = persvoteinsord, y = total_nr_of_tweets, fill = campaign_season)) + 
+				  geom_boxplot(position = "dodge") + 
+				  labs(title = "Boxplot of Total Number of Tweets by Group and Campaign Season",
+					   x = "Group",
+					   y = "Total Number of Tweets") + 
+				  theme_minimal() +
+				  scale_y_continuous(limits = c(0, 100)) + # coord_cartesian(xlim = c(0, 100)) +
+				  scale_fill_brewer(palette = "Set1", name = "Campaign Season") +
+				  coord_flip()
+
+
+
+
+					  
+				# lets get some averages I mention in the Paper
+					mean(DT_RED[which(DT_RED$persvoteins == "cat 5 (lowest incentive)- DE closed list" & DT_RED$campaign_season == "yes"),]$total_nr_of_tweets)
+					mean(DT_RED[which((!DT_RED$persvoteins == "cat 5 (lowest incentive)- DE closed list") & DT_RED$campaign_season == "yes"),]$total_nr_of_tweets)
+
+
+
+
+
+
+
+
+				  
+
+			
 			
 		# descriptively, what do the group averages look like
 			
