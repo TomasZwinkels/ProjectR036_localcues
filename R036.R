@@ -383,7 +383,16 @@ ls()
 	table(TWEE$candidacies)
 	table(TWEE$country)
 	
-		# comparing what I have with what Oliver made
+	# looking up some tweets where economic development is mentioned (see reviewer comment on row 17). 
+		keywords <- c("Wirtschaft", "ökonomisch","Wirtschaftsentwicklung")
+		keywords <- c("Wirtschaftsentwicklung")
+		keyword_hits <- grepl(paste(keywords, collapse = "|"), TWEE$text, ignore.case = TRUE)
+		table(keyword_hits)
+		
+		# inspect
+		head(TWEE$text[which(keyword_hits)])	
+	
+	# comparing what I have with what Oliver made
 		
 			# Merge the No,Yes and No category (as those hits that contain a "no" are true hits, i.e. true positives) <-- code from Oliver '. I don’t recode this variable in my script, so to make the classification obvious, I suggest running this additional bit of code:'
 
@@ -907,6 +916,77 @@ ls()
 			BinomialResponseMatrix <- as.matrix(cbind(nrofsucces,nrpffailures))
 			head(BinomialResponseMatrix)
 	
+	----
+
+
+			# Create a copy of the original dataset
+			DT_playing <- DT
+
+			# Ensure DT_playing has the necessary columns
+			DT_playing <- DT_playing[, c("pers_loc", "nr_of_tweets_with_localque", "total_nr_of_tweets", "country", "pers_id")]
+
+			# Number of zero success observations to add
+			n_zero_success <- 40000
+
+			# Assuming DT_playing is your data frame and total_nr_of_tweets is your column of interest
+			hist(DT_playing$total_nr_of_tweets, breaks=2000, main="Histogram of Total Number of Tweets", xlab="Total Number of Tweets", ylab="Frequency")
+
+			# Calculate the parameters for a log-normal like distribution that totalnumberoftweets has
+			log_mean <- mean(log(DT_playing$total_nr_of_tweets[DT_playing$total_nr_of_tweets > 0]))
+			log_sd <- sd(log(DT_playing$total_nr_of_tweets[DT_playing$total_nr_of_tweets > 0]))
+
+			# Create additional observations with zero success
+			# OK, so I am not quite happy here with all the zero observations having one tweet
+			ADDA <- data.frame(
+			  pers_loc = rep(0, n_zero_success),
+			  nr_of_tweets_with_localque = rep(0, n_zero_success),
+			  total_nr_of_tweets = round(rlnorm(n_zero_success, meanlog = log_mean, sdlog = log_sd)), # simular distribution as DT now.
+			  country = sample(DT_playing$country, n_zero_success, replace = TRUE),  # Randomly assign country
+			  pers_id = sample(DT_playing$pers_id, n_zero_success, replace = TRUE)   # Randomly assign pers_id
+			)
+			head(ADDA)
+			
+			# check of modeling the totalnrtweets distribution kinda worked oud
+			hist(ADDA$total_nr_of_tweets, breaks=2000, main="Histogram of Total Number of Tweets in Simulated data", xlab="Total Number of Tweets", ylab="Frequency") # looks good
+
+			# Combine with the original subset dataset
+			DT_updated <- rbind(DT_playing, ADDA)
+
+			# Update the Binomial Response Matrix
+			nrofsucces <- DT_updated$nr_of_tweets_with_localque
+			nrpffailures <- DT_updated$total_nr_of_tweets - DT_updated$nr_of_tweets_with_localque
+			BinomialResponseMatrix <- as.matrix(cbind(nrofsucces, nrpffailures))
+
+			# Refit the mixed model with the updated data
+			m_mp_empty_updated <- glmer(BinomialResponseMatrix ~ 1 + 
+										(1 | country) + 
+										(1 | pers_id), 
+										data = DT_updated, 
+										family = binomial)
+
+			# Display the summary of the updated mixed model
+			summary(m_mp_empty_updated)
+			exp(-4.7371)/(1+exp(-4.7371))
+
+			# Display the updated mixed model output using stargazer
+			stargazer(m_mp_empty_updated, type = "text", intercept.bottom = FALSE)
+
+			# Refit the simple linear regression model with the updated data
+			lm_model_updated <- lm(pers_loc ~ 1, data = DT_updated)
+
+			# Display the summary of the updated linear model
+			summary(lm_model_updated)
+
+			# Display the updated linear model output using stargazer
+			stargazer(lm_model_updated, type = "text", intercept.bottom = FALSE)
+
+			# OK, sure, but it does not feel like the whole story. So this actually shows that the regular regression model is less affected by all the zero's then the Binomial model. 
+			# if this is true, then the value from loess should be higher then form the Binomial model..  ow wait, it it is indeed.
+
+			
+	-----
+	
+	
 	
 			# the model
 				m_mp_empty 		<- glmer(BinomialResponseMatrix~ 1 + # m_mp_empty 		<- lmer(pers_loc~ 1 +
@@ -914,11 +994,18 @@ ls()
 									(1 | pers_id)
 									,data=DT, family= binomial) # ,data=DT)
 				summary(m_mp_empty)
+				exp(-2.47180)/(1+exp(-2.47180))
 				stargazer(m_mp_empty,type="text",intercept.bottom=FALSE)
 				
 				par(mfrow=2:1)
 				hist(predict(m_mp_empty,type="response"),xlim=c(0,1),breaks=20) 
-				hist(DT$pers_loc/100,xlim=c(0,1),breaks=40) # so we can see that the  model is not good at predicting the zero... 
+				hist(DT$pers_loc/100,xlim=c(0,1),breaks=40) # so we can see that the  model is not good at predicting the zero...
+
+				mean(DT$pers_loc)
+
+		## to put the mind of reviewer 3 at ease about the mixed image in terms of the baseline.
+			lm_model <- lm(pers_loc ~ 1, data = DT)
+			summary(lm_model) # this is more in the 11/12% range indeed! 
 			
 		## controlling for time
 
@@ -1118,37 +1205,62 @@ ls()
 			#	DTHERE <- DT_RED
 			DTHERE <- DT
 			
+			mean(DTHERE$pers_loc)
+			
 			#
 			# OK, and a visual like the one above but on the MP/month level
 			#
+			
+			# just testing the impact of the zero values here
+			# DTHERE <- DTHERE %>% filter(pers_loc != 0)
+			
+			# Aggregate the total number of tweets per month
+			DTHERE$monthpos <- as.POSIXct(format(DTHERE$timest, "%Y-%m-01"))
+			TTPM <- aggregate(total_nr_of_tweets ~ monthpos + country, data = DTHERE, sum)
+			
+			# Calculate the transformation factor
+			max_total_tweets <- max(TTPM$total_nr_of_tweets)
+			max_percentage <- 100  # since y-axis represents percentage
+			transformation_factor <- max_percentage / max_total_tweets
+			transformation_factor
+			
+			# some general figure settings (reviewer 3 would like to see loess)
+			smoothingtype = "loess"
 		
 			ggplot(data = DTHERE, aes(x = timest, y = pers_loc,colour=campaign_season)) +
-			geom_point() +
-			# geom_jitter() +
+			geom_point(size=0.8) +
+			geom_jitter(size=0.9) + # reviewer 3 would like to see this switched on
 			# geom_smooth() +
 			facet_grid(country ~ .) +
+			geom_vline(aes(xintercept=DTHERE$date_of_next_election), linetype=4, colour="black",size=1.25) +
+		#	geom_vline(aes(xintercept = date_of_next_election, colour = "Date of parliamentary election"), linetype = 4, size = 1.25) +
+		#	scale_color_manual(values = c("no", "yes", "Date of parliamentary election" = "black")) +
 			#facet_grid(persvoteins ~ .) +
 			scale_x_datetime(limits = c(as.POSIXct("2009-01-01 00:00:00 GMT"),as.POSIXct("2019-12-31 23:59:59 GMT"))) +
 		#	geom_rect(data=DTHERE, aes(xmin=date_of_next_election- months(lengthcampaignseason), xmax=date_of_next_election, ymin=1, ymax=Inf),alpha=0.007,fill="darkgreen") +
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2009-09-27 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2009-09-27 00:00:00 GMT") & DTHERE$country == "DE",],method=lm,color="darkgreen",size=1.5) + # DE starts here
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2013-09-22 00:00:00 GMT") & DTHERE$country == "DE",],method=lm,color="darkgreen",size=1.5) +
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2017-09-24 00:00:00 GMT") & DTHERE$country == "DE",],method=lm,color="darkgreen",size=1.5) +
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2021-09-26 00:00:00 GMT") & DTHERE$country == "DE",],method=lm,color="darkgreen",size=1.5) +
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2011-10-23 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=1.5) + # CH starts here
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2015-10-18 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=1.5) +
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2019-10-20 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=2) +
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2023-10-22 00:00:00 GMT") & DTHERE$country == "CH",],method=lm,color="darkgreen",size=1.5) +
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2009-09-27 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "DE",],method=lm,color="darkred",size=1.5) + # DE outside of campaign season starts here
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2013-09-22 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "DE",],method=lm,color="darkred",size=1.5) +  
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2017-09-24 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "DE",],method=lm,color="darkred",size=1.5) +  
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2007-10-21 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) + # CH outside of campaign season starts here
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2011-10-23 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) + 
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2015-10-18 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) +
-			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2019-10-20 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=lm,color="darkred",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2009-09-27 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2009-09-27 00:00:00 GMT") & DTHERE$country == "DE",],method=smoothingtype,color="darkgreen",size=1.5) + # DE starts here
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2013-09-22 00:00:00 GMT") & DTHERE$country == "DE",],method=smoothingtype,color="darkgreen",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2017-09-24 00:00:00 GMT") & DTHERE$country == "DE",],method=smoothingtype,color="darkgreen",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2021-09-26 00:00:00 GMT") & DTHERE$country == "DE",],method=smoothingtype,color="darkgreen",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2011-10-23 00:00:00 GMT") & DTHERE$country == "CH",],method=smoothingtype,color="darkgreen",size=1.5) + # CH starts here
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2015-10-18 00:00:00 GMT") & DTHERE$country == "CH",],method=smoothingtype,color="darkgreen",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2019-10-20 00:00:00 GMT") & DTHERE$country == "CH",],method=smoothingtype,color="darkgreen",size=2) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$timest<as.POSIXct("2023-10-22 00:00:00 GMT") & DTHERE$country == "CH",],method=smoothingtype,color="darkgreen",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2009-09-27 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2013-09-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "DE",],method=smoothingtype,color="darkred",size=1.5) + # DE outside of campaign season starts here
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2013-09-22 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2017-09-24 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "DE",],method=smoothingtype,color="darkred",size=1.5) +  
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2017-09-24 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2021-09-26 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "DE",],method=smoothingtype,color="darkred",size=1.5) +  
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2007-10-21 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2011-10-23 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=smoothingtype,color="darkred",size=1.5) + # CH outside of campaign season starts here
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2011-10-23 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2015-10-18 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=smoothingtype,color="darkred",size=1.5) + 
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2015-10-18 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2019-10-20 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=smoothingtype,color="darkred",size=1.5) +
+			geom_smooth(data=DTHERE[DTHERE$timest>as.POSIXct("2019-10-20 00:00:00 GMT") & DTHERE$timest<as.POSIXct("2023-10-22 00:00:00 GMT")- months(lengthcampaignseason) & DTHERE$country == "CH",],method=smoothingtype,color="darkred",size=1.5) +
+			geom_bar(data = TTPM, aes(x = monthpos, y = total_nr_of_tweets * transformation_factor), stat = "identity", alpha = 0.375, position = "dodge", inherit.aes = FALSE) +
+		#	scale_y_continuous(sec.axis = sec_axis(~ . / transformation_factor, name = "Total number of tweets per month")) +
+			scale_y_continuous(sec.axis = sec_axis(~ . / transformation_factor, name = "Total number of tweets per month", labels = scales::unit_format(unit = "k", scale = 1e-3))) +
 			theme_pubr(base_size =20) + # theme_pubr(base_size =20) +
 			xlab("Time") +
 			ylab("% of MP's tweets this month with a local cue") +
-			guides(colour=guide_legend(title="Campaign Season")) +
+			#guides(colour=guide_legend(title="Campaign Season")) +
+			guides(colour = guide_legend(title = "Campaign Season", override.aes = list(size = 3))) +
 		    theme(panel.grid.major.y = element_line(color = "darkgrey",
                                           size = 0.5,
                                           linetype = 2))
