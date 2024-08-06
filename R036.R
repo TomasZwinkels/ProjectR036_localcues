@@ -2036,6 +2036,72 @@ ls()
 				head(DT)
 				tapply(DT$total_nr_of_tweets, DT$campaign_season, mean)
 
+			# reviewer suggested to also see what happens with a MP fixed-effect, which is an interesting idea.
+			
+			# MP fixed-effect model here
+
+				# Define the model (takes hours and still does not converge)
+		#		mp_fixef  <- glmer(BinomialResponseMatrixRED ~ year_cent +
+		#													age_cent +
+		#													tenure_cent +
+		#													campaign_season +
+		#													pers_id +
+		#													(1 | country),
+		#						   data = DT_RED, family = binomial)
+				
+				# I just want to know the rebustness to lets just run this model on 10% of the data-frame
+				set.seed(123)
+				sample_indices <- sample(nrow(DT_RED), size = 0.1 * nrow(DT_RED))
+				nrow(DT_RED)
+				DT_RED_sample <- DT_RED[sample_indices, ]
+				nrow(BinomialResponseMatrixRED)
+				BinomialResponseMatrixRED_sample <- BinomialResponseMatrixRED[sample_indices, ]
+				
+				nrow(DT_RED_sample)
+				
+				# binomial model without random effect for country
+				start_time <- Sys.time()
+				mp_fixef <- glm(BinomialResponseMatrixRED ~ year_cent +
+                                                      age_cent +
+                                                      tenure_cent +
+                                                      campaign_season +
+                                                      pers_id,
+                          data = DT_RED, family = binomial)
+				end_time <- Sys.time()
+				duration <- as.numeric(difftime(end_time, start_time, units = "mins"))
+				duration
+				
+				
+				# still with random effects
+			#	start_time <- Sys.time()
+			#	
+			#	mp_fixef  <- glmer(BinomialResponseMatrixRED_sample ~ year_cent +
+			#												age_cent +
+			#												tenure_cent +
+			#												campaign_season +
+			#												pers_id +
+			#												(1 | country),
+			#					   data = DT_RED_sample, family = binomial, 
+            #             control = glmerControl(optimizer = "bobyqa"))
+			#	
+			#	end_time <- Sys.time()
+			#	duration <- as.numeric(difftime(end_time, start_time, units = "mins"))
+			#	duration
+				
+				save(mp_fixef, file = "mp_fixef_model.rda")
+
+				# Display the summary of the model
+				# summary(mp_fixef)
+
+			# Create a summary without the 'pers_id' fixed effects
+				summary_no_pers_id <- summary(mp_fixef)
+				summary_no_pers_id$coefficients <- summary_no_pers_id$coefficients[!grepl("pers_id", rownames(summary_no_pers_id$coefficients)), ]
+
+				# Use stargazer to generate the table without all the dummies for the different MPs
+				stargazer(m_mp_campaign_season_red,m_mp_int,mp_fixef, type = "text",  keep = rownames(c(summary_no_pers_id$coefficients,"(Intercept)")))
+				  
+				
+
 		## adding a properly complete multi-level outputed version of this model Here
 			
 	m1 <- m_mp_empty
